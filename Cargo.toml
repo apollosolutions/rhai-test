@@ -9,10 +9,12 @@ edition = "2021"
 debug = true
 
 [dependencies]
+apollo-router = { path = "/Users/andrew/source/repos/router/apollo-router" }
 clap = { version = "4.5.1", features = ["derive"] }
 colored = "2.1.0"
 glob = "0.3.1"
 http = "1.0.0"
+regex = "1.10.6"
 rhai = { version = "1.17.1", features = ["metadata"] }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
