@@ -5,6 +5,7 @@ mod test_container;
 use clap::Parser;
 use expector::Expector;
 use glob::glob;
+use rhai::module_resolvers::FileModuleResolver;
 use rhai::{Engine, FnPtr};
 use serde::Deserialize;
 use std::fs::{self};
@@ -52,7 +53,11 @@ fn main() {
         .register_fn("expect", Expector::new)
         .register_fn("not", Expector::not)
         .register_fn("to_be", Expector::to_be)
-        .register_fn("to_match", Expector::to_match);
+        .register_fn("to_match", Expector::to_match)
+        .register_fn("to_throw", Expector::to_throw);
+
+    let resolver = FileModuleResolver::new_with_path("examples"); // TODO: This should be configurable
+    engine.set_module_resolver(resolver);
 
     extensions::apollo::register_rhai_functions_and_types(&mut engine);
     extensions::helpers::register_rhai_functions_and_types(&mut engine);

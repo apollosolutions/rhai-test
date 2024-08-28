@@ -99,7 +99,11 @@ pub fn register_rhai_functions_and_types(engine: &mut Engine) {
 pub fn register_mocking_functions(engine: &mut Engine) {
     engine
         .register_type_with_name::<apollo_mocks::SupergraphService>("SupergraphService")
-        .register_fn("map_request", apollo_mocks::SupergraphService::map_request);
+        .register_fn("map_request", apollo_mocks::SupergraphService::map_request)
+        .register_fn(
+            "has_mapped_request",
+            apollo_mocks::SupergraphService::has_mapped_request,
+        );
 
     let apollo_mocks_module = exported_module!(apollo_mocks);
 
@@ -126,6 +130,10 @@ mod apollo_mocks {
 
         pub fn map_request(&mut self, func: FnPtr) {
             self.request_callback = Some(func);
+        }
+
+        pub fn has_mapped_request(&mut self) -> bool {
+            return self.request_callback.is_some();
         }
     }
 
