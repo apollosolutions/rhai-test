@@ -102,11 +102,11 @@ impl Expector {
     }
 
     pub fn to_throw(&mut self) -> Result<(), String> {
-        let condition = match &self.value {
+        /*let condition = match &self.value {
             ExpectedValue::Function(value) => value.call((), (), ()),
             _ => return Err("Type mismatch".into()), // TODO: Better message
-        };
+        };*/
 
-        Ok(())
+        Err("Not implemented".to_string())
     }
 }
