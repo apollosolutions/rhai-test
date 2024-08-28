@@ -32,13 +32,16 @@ test("Should get environment variables", ||{
 });
 
 test("Should do stuff", ||{
-    let service = get_apollo_mocks().get_supergraph_service();
+    let service = apollo_mocks::get_supergraph_service();
+    let request = apollo_mocks::get_supergraph_service_request();
 
     let request_callback = |request| {
         print("Supergraph service: Client request received");
     };
 
     service.map_request(request_callback);
+
+    print(request.body.query);
 
     expect("a").to_be("a");
 });

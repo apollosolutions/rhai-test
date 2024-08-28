@@ -14,6 +14,7 @@ use http::HeaderMap;
 use http::Method;
 use http::StatusCode;
 use http::Uri;
+use rhai::Shared;
 use rhai::{plugin::*, Map};
 use rhai::{Engine, FnPtr};
 use serde_json::json;
@@ -97,53 +98,46 @@ pub fn register_rhai_functions_and_types(engine: &mut Engine) {
 
 pub fn register_mocking_functions(engine: &mut Engine) {
     engine
-        .register_type_with_name::<ApolloMocks>("ApolloMocks")
-        .register_fn("get_apollo_mocks", ApolloMocks::new)
-        .register_fn(
-            "get_supergraph_service",
-            ApolloMocks::get_supergraph_service,
-        );
-    /*.register_fn(
-        "get_supergraph_service_request",
-        ApolloMocks::get_supergraph_service_request,
-    );*/
+        .register_type_with_name::<apollo_mocks::SupergraphService>("SupergraphService")
+        .register_fn("map_request", apollo_mocks::SupergraphService::map_request);
 
-    engine
-        .register_type_with_name::<SupergraphService>("SupergraphService")
-        .register_fn("map_request", SupergraphService::map_request);
+    let apollo_mocks_module = exported_module!(apollo_mocks);
+
+    engine.register_static_module("apollo_mocks", apollo_mocks_module.into());
 }
 
-#[derive(Debug, Clone)]
-pub struct SupergraphService {
-    request_callback: Option<FnPtr>,
-}
+#[export_module]
+mod apollo_mocks {
+    use std::sync::Mutex;
 
-impl SupergraphService {
-    pub fn new() -> Self {
-        Self {
-            request_callback: None,
+    use apollo_router::_private::rhai::{execution, router, subgraph, supergraph};
+
+    #[derive(Debug, Clone)]
+    pub struct SupergraphService {
+        request_callback: Option<FnPtr>,
+    }
+
+    impl SupergraphService {
+        pub fn new() -> Self {
+            Self {
+                request_callback: None,
+            }
+        }
+
+        pub fn map_request(&mut self, func: FnPtr) {
+            self.request_callback = Some(func);
         }
     }
 
-    pub fn map_request(&mut self, func: FnPtr) {
-        self.request_callback = Some(func);
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct ApolloMocks {}
-
-impl ApolloMocks {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn get_supergraph_service(&mut self) -> SupergraphService {
+    #[rhai_fn()]
+    pub(crate) fn get_supergraph_service() -> SupergraphService {
         SupergraphService::new()
     }
 
-    pub fn get_supergraph_service_request(&mut self) -> supergraph::Request {
-        supergraph::Request::builder()
+    #[rhai_fn()]
+    pub(crate) fn get_supergraph_service_request(
+    ) -> Shared<Mutex<std::option::Option<apollo_router::services::supergraph::Request>>> {
+        let request = supergraph::Request::builder()
             .header("a", "b")
             .header("a", "c")
             .uri(Uri::from_static("http://example.com"))
@@ -151,11 +145,11 @@ impl ApolloMocks {
             .query("query { topProducts }")
             .operation_name("Default")
             .context(Context::new())
-            // We need to follow up on this. How can users creat this easily?
             .extension("foo", json!({}))
-            // We need to follow up on this. How can users creat this easily?
             .variable("bar", json!({}))
             .build()
-            .unwrap()
+            .unwrap();
+        let shared_request = Arc::new(Mutex::new(Some(request)));
+        shared_request
     }
 }
