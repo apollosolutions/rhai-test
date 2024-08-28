@@ -54,7 +54,10 @@ fn main() {
         .register_fn("to_be", Expector::to_be)
         .register_fn("to_match", Expector::to_match);
 
-    extensions::apollo::register_rhai_functions(&mut engine);
+    extensions::apollo::register_rhai_functions_and_types(&mut engine);
+    extensions::helpers::register_rhai_functions_and_types(&mut engine);
+
+    extensions::apollo::register_mocking_functions(&mut engine);
 
     for path in &test_files {
         println!("{}", path);

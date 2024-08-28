@@ -22,4 +22,23 @@ test("Should generate a uuid", ||{
     let uuid = uuid_v4();
 
     expect(uuid).to_match(".{8}-.{4}-.{4}-.{4}-.{12}");
-})
+});
+
+test("Should get environment variables", ||{
+    get_testing_utils().set_env("MY_COOL_ENV_VAR", "hello");
+    let result = `${env::get("MY_COOL_ENV_VAR")}`;
+
+    expect(result).to_be("hello");
+});
+
+test("Should do stuff", ||{
+    let service = get_apollo_mocks().get_supergraph_service();
+
+    let request_callback = |request| {
+        print("Supergraph service: Client request received");
+    };
+
+    service.map_request(request_callback);
+
+    expect("a").to_be("a");
+});
