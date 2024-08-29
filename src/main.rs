@@ -1,17 +1,19 @@
 mod expector;
 mod extensions;
 mod test_container;
+mod test_runner;
 
 use clap::Parser;
 use expector::Expector;
 use glob::glob;
 use rhai::module_resolvers::FileModuleResolver;
-use rhai::{Engine, FnPtr};
+use rhai::{Dynamic, Engine, FnPtr, AST};
 use serde::Deserialize;
 use std::fs::{self};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use test_container::TestContainer;
+use test_runner::TestRunner;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -46,23 +48,36 @@ fn main() {
     }
 
     let test_container = Arc::new(Mutex::new(TestContainer::new()));
-    let mut engine = Engine::new();
+    let engine = Arc::new(Mutex::new(Engine::new()));
+    let shared_ast: Arc<Mutex<Option<AST>>> = Arc::new(Mutex::new(None));
 
-    engine
-        .register_type_with_name::<Expector>("Expector")
-        .register_fn("expect", Expector::new)
-        .register_fn("not", Expector::not)
-        .register_fn("to_be", Expector::to_be)
-        .register_fn("to_match", Expector::to_match)
-        .register_fn("to_throw", Expector::to_throw);
+    let expectors = Arc::new(Mutex::new(Vec::<Expector>::new()));
+    let cloned_expectors = expectors.clone();
+    let cloned_shared_ast = shared_ast.clone();
 
-    let resolver = FileModuleResolver::new_with_path("examples"); // TODO: This should be configurable
-    engine.set_module_resolver(resolver);
+    {
+        let mut engine_guard = engine.lock().unwrap();
+        engine_guard
+            .register_type_with_name::<Expector>("Expector")
+            .register_fn("expect", move |value: Dynamic| {
+                let mut expector = Expector::new(value);
+                expector.attach_engine_and_ast(cloned_shared_ast.clone());
+                cloned_expectors.lock().unwrap().push(expector.clone());
+                expector
+            })
+            .register_fn("not", Expector::not)
+            .register_fn("to_be", Expector::to_be)
+            .register_fn("to_match", Expector::to_match)
+            .register_fn("to_throw", Expector::to_throw);
 
-    extensions::apollo::register_rhai_functions_and_types(&mut engine);
-    extensions::helpers::register_rhai_functions_and_types(&mut engine);
+        let resolver = FileModuleResolver::new_with_path("examples"); // TODO: This should be configurable
+        engine_guard.set_module_resolver(resolver);
 
-    extensions::apollo::register_mocking_functions(&mut engine);
+        extensions::apollo::register_rhai_functions_and_types(&mut engine_guard);
+        extensions::helpers::register_rhai_functions_and_types(&mut engine_guard);
+
+        extensions::apollo::register_mocking_functions(&mut engine_guard);
+    }
 
     for path in &test_files {
         println!("{}", path);
@@ -73,26 +88,73 @@ fn main() {
 
         let test = move |test_name: &str, func: FnPtr| {
             cloned_container
-                //.borrow_mut()
                 .lock()
                 .unwrap()
                 .add_test(test_name, func, &cloned_path);
         };
 
-        engine.register_fn("test", test);
+        engine.lock().unwrap().register_fn("test", test);
 
-        match engine.compile(&test_file_content) {
-            Ok(ast) => match engine.eval::<()>(&test_file_content) {
-                Ok(()) => {
-                    test_container
-                        .lock()
-                        .unwrap()
-                        .run_tests(&engine, &ast, &path);
+        let ast = {
+            let engine_guard = engine.lock().unwrap();
+            engine_guard.compile(&test_file_content)
+        };
+
+        match ast {
+            Ok(ast) => {
+                {
+                    let mut ast_lock = shared_ast.lock().unwrap();
+                    *ast_lock = Some(ast.clone());
                 }
-                Err(err) => {
-                    println!("Eval error: {}", err);
+
+                let eval_result = {
+                    let engine_guard = engine.lock().unwrap();
+                    engine_guard.eval::<()>(&test_file_content)
+                };
+
+                let ast_arc = Arc::new(Mutex::new(ast));
+
+                match eval_result {
+                    Ok(()) => {
+                        let tests = {
+                            let container = test_container.lock().unwrap();
+                            container.get_tests().clone().to_vec()
+                        };
+
+                        //expectors.lock().unwrap().iter_mut().for_each(|expector| {
+                        //expector.attach_engine_and_ast(engine.clone(), ast_arc.clone());
+                        //});
+
+                        /*expectors.lock().unwrap().iter_mut().for_each(|expector| {
+                            println!("Debug 1");
+                            expector.debug();
+                        });*/
+
+                        let runner: TestRunner = TestRunner::new();
+                        let run_result = runner.run_tests(
+                            &engine.lock().unwrap(),
+                            &ast_arc.lock().unwrap(),
+                            &path,
+                            &tests,
+                        );
+
+                        /*expectors.lock().unwrap().iter_mut().for_each(|expector| {
+                            println!("Debug 2");
+                            expector.debug();
+                        });*/
+
+                        let mut container = test_container.lock().unwrap();
+                        container.passed_tests += run_result.passed_tests;
+                        container.failed_tests += run_result.failed_tests;
+                        if run_result.failed_tests > 0 {
+                            container.fail_suite(&path);
+                        }
+                    }
+                    Err(err) => {
+                        println!("Eval error: {}", err);
+                    }
                 }
-            },
+            }
             Err(error) => {
                 println!("Compilation Error: {}", error);
             }

@@ -1,0 +1,4 @@
+test("this is a passing test", |expect|{
+    print(expect);
+    expect();
+});

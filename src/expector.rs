@@ -1,5 +1,12 @@
+use std::{
+    arch::aarch64::int32x2_t,
+    cell::RefCell,
+    rc::Rc,
+    sync::{Arc, Mutex},
+};
+
 use regex::Regex;
-use rhai::{Dynamic, EvalAltResult, FnPtr, Func, ImmutableString};
+use rhai::{Dynamic, Engine, EvalAltResult, FnPtr, Func, ImmutableString, AST};
 
 #[derive(Debug, Clone)]
 pub enum ExpectedValue {
@@ -26,6 +33,7 @@ impl ExpectedValue {
 pub struct Expector {
     pub value: ExpectedValue,
     pub negative: bool,
+    ast: Option<Arc<Mutex<Option<AST>>>>,
 }
 
 impl Expector {
@@ -33,9 +41,13 @@ impl Expector {
         Self {
             value: ExpectedValue::from_dynamic(&value).unwrap(),
             negative: false,
+            ast: None,
         }
     }
 
+    pub fn attach_engine_and_ast(&mut self, ast: Arc<Mutex<Option<AST>>>) {
+        self.ast = Some(ast);
+    }
     pub fn not(mut self) -> Self {
         self.negative = true;
         self
@@ -102,11 +114,26 @@ impl Expector {
     }
 
     pub fn to_throw(&mut self) -> Result<(), String> {
-        /*let condition = match &self.value {
-            ExpectedValue::Function(value) => value.call((), (), ()),
-            _ => return Err("Type mismatch".into()), // TODO: Better message
-        };*/
+        let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
+        let ast = ast_guard.as_ref().unwrap();
+        let engine = Engine::new();
 
-        Err("Not implemented".to_string())
+        let condition = match &self.value {
+            ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()).is_err(),
+            _ => return Err("Type mismatch".into()), // TODO: Better message
+        };
+
+        // TODO: Support specific throw messages
+        if !condition && !self.negative {
+            let error = format!("Expected function to throw but it did not");
+
+            Err(error)
+        } else if condition && self.negative {
+            let error = format!("Expected function to not throw but it did");
+
+            Err(error)
+        } else {
+            Ok(())
+        }
     }
 }
