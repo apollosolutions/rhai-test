@@ -83,7 +83,7 @@ impl TestRunner {
                             EvalAltResult::ErrorMismatchOutputType(_, _, _) => {
                                 let hint =
                                     format!( "{}",
-                                "\t\tHint: Make sure your test ends with an expect function."
+                                "\n\t\tHint: Make sure your test ends with an expect function."
                                     .green());
                                 reason.push_str(&hint);
                             }

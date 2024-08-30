@@ -1,6 +1,7 @@
 use rhai::Engine;
 use std::env;
 
+// TODO: Update these helpers to be more like apollo_mocks with "engine.register_static_module"
 pub fn register_rhai_functions_and_types(engine: &mut Engine) {
     engine
         .register_type_with_name::<TestHelpers>("TestHelpers")
