@@ -1,7 +1,6 @@
 use crate::extensions;
 use rhai::{module_resolvers::FileModuleResolver, Engine};
 
-// TODO: Use this in main.rs so we have a standard definition
 pub fn create_engine() -> Engine {
     let mut engine = Engine::new();
     let resolver = FileModuleResolver::new_with_path("examples"); // TODO: This should be configurable

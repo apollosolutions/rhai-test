@@ -5,6 +5,7 @@ mod test_container;
 mod test_runner;
 
 use clap::Parser;
+use engine::create_engine;
 use expector::Expector;
 use glob::glob;
 use rhai::module_resolvers::FileModuleResolver;
@@ -49,7 +50,7 @@ fn main() {
     }
 
     let test_container = Arc::new(Mutex::new(TestContainer::new()));
-    let engine = Arc::new(Mutex::new(Engine::new()));
+    let engine = Arc::new(Mutex::new(create_engine()));
     let shared_ast: Arc<Mutex<Option<AST>>> = Arc::new(Mutex::new(None));
 
     let expectors = Arc::new(Mutex::new(Vec::<Expector>::new()));
@@ -76,14 +77,6 @@ fn main() {
                 "to_throw_status_and_message",
                 Expector::to_throw_status_and_message,
             );
-
-        let resolver = FileModuleResolver::new_with_path("examples"); // TODO: This should be configurable
-        engine_guard.set_module_resolver(resolver);
-
-        extensions::apollo::register_rhai_functions_and_types(&mut engine_guard);
-        extensions::helpers::register_rhai_functions_and_types(&mut engine_guard);
-
-        extensions::apollo::register_mocking_functions(&mut engine_guard);
     }
 
     for path in &test_files {
