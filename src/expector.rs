@@ -1,12 +1,15 @@
+use crate::engine::create_engine;
+use regex::Regex;
+use rhai::{
+    module_resolvers::FileModuleResolver, Dynamic, Engine, EvalAltResult, FnPtr, Func,
+    ImmutableString, AST,
+};
 use std::{
     arch::aarch64::int32x2_t,
     cell::RefCell,
     rc::Rc,
     sync::{Arc, Mutex},
 };
-
-use regex::Regex;
-use rhai::{Dynamic, Engine, EvalAltResult, FnPtr, Func, ImmutableString, AST};
 
 #[derive(Debug, Clone)]
 pub enum ExpectedValue {
@@ -116,12 +119,30 @@ impl Expector {
     pub fn to_throw(&mut self) -> Result<(), String> {
         let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
         let ast = ast_guard.as_ref().unwrap();
-        let engine = Engine::new();
 
-        let condition = match &self.value {
-            ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()).is_err(),
+        let engine = create_engine();
+
+        let result = match &self.value {
+            ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
             _ => return Err("Type mismatch".into()), // TODO: Better message
         };
+
+        // TODO: Capture error message(s) (stack track type of thing?) and display it on bad errors
+        // TODO: Capture inner error message on good errors so we can do tests against it
+        // TODO: Can we do helpful error messages for certain error types? (E.g. ErrorModuleNotFound remind the user to import into inner scope?)
+        if let Err(ref err) = result {
+            match **err {
+                rhai::EvalAltResult::ErrorInFunctionCall(_, _, ref inner, _) => {
+                    if !matches!(**inner, rhai::EvalAltResult::ErrorInFunctionCall(..)) {
+                        // This runs if the inner error is NOT an ErrorInFunctionCall
+                        return Err("Unexpected error ocurred when running tests.".to_string());
+                    }
+                }
+                _ => return Err("Unexpected error ocurred when running tests.".to_string()),
+            }
+        }
+
+        let condition = result.is_err();
 
         // TODO: Support specific throw messages
         if !condition && !self.negative {
