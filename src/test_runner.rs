@@ -99,14 +99,14 @@ impl TestRunner {
             }
         }
 
-        if (all_passing) {
+        if all_passing {
             println!("{} {}", " PASS ".white().on_green().bold(), path);
         } else {
             println!("{} {}", " FAIL ".white().on_red().bold(), path);
         }
 
         test_results.iter().for_each(|test_result| {
-            if (test_result.is_passed) {
+            if test_result.is_passed {
                 println!("\t{} {}", "✓".green().bold(), test_result.name);
             } else {
                 println!(

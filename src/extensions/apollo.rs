@@ -44,19 +44,19 @@ pub fn register_rhai_functions_and_types(engine: &mut Engine) {
             // TODO: Can we collect all the print-type methods and spit them out similar to how Jest does it?
             print!("{}", message);
         })
-        .register_fn("log_trace", move |message: Dynamic| {
+        .register_fn("log_trace", move |_message: Dynamic| {
             // TODO: Should we conditionally output based on a configured log level?
         })
-        .register_fn("log_debug", move |message: Dynamic| {
+        .register_fn("log_debug", move |_message: Dynamic| {
             // TODO: Should we conditionally output based on a configured log level?
         })
-        .register_fn("log_info", move |message: Dynamic| {
+        .register_fn("log_info", move |_message: Dynamic| {
             // TODO: Should we conditionally output based on a configured log level?
         })
-        .register_fn("log_warn", move |message: Dynamic| {
+        .register_fn("log_warn", move |_message: Dynamic| {
             // TODO: Should we conditionally output based on a configured log level?
         })
-        .register_fn("log_error", move |message: Dynamic| {
+        .register_fn("log_error", move |_message: Dynamic| {
             // TODO: Should we conditionally output based on a configured log level?
         });
 
@@ -114,7 +114,9 @@ pub fn register_mocking_functions(engine: &mut Engine) {
 mod apollo_mocks {
     use std::sync::Mutex;
 
-    use apollo_router::_private::rhai::{execution, router, subgraph, supergraph};
+    // TODO: execution, router, subgraph
+    // TODO: Add all request/response mock types
+    use apollo_router::_private::rhai::supergraph;
 
     #[derive(Debug, Clone)]
     pub struct SupergraphService {

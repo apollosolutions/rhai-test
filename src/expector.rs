@@ -173,7 +173,7 @@ impl Expector {
             let error = format!("Expected function to not throw but it did");
 
             Err(error)
-        } else if (condition && !condition2) {
+        } else if condition && !condition2 {
             Err(format!(
                 "Expected function to throw error with status '{}' but instead received '{}'",
                 status_code_to_match, status_code
@@ -222,18 +222,18 @@ impl Expector {
         let condition2 = message == message_to_match;
         let condition3 = {
             let regex = Regex::new(message_to_match);
-            let mut result = false;
+            let condition3_result;
 
             match regex {
                 Ok(regex) => {
-                    result = regex.is_match(&message);
+                    condition3_result = regex.is_match(&message);
                 }
                 Err(_) => {
-                    result = false;
+                    condition3_result = false;
                 }
             }
 
-            result
+            condition3_result
         };
 
         if !condition && !self.negative {
@@ -244,7 +244,7 @@ impl Expector {
             let error = format!("Expected function to not throw but it did");
 
             Err(error)
-        } else if (condition && (!condition2 && !condition3)) {
+        } else if condition && (!condition2 && !condition3) {
             Err(format!(
                 "Expected function to throw error with message '{}' but instead received '{}'",
                 message_to_match, message
