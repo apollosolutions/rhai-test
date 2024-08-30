@@ -1,4 +1,3 @@
-test("this is a passing test", |expect|{
-    print(expect);
-    expect();
+test("this is a passing test", ||{
+    expect("a").to_be("a");    
 });

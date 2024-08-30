@@ -110,9 +110,24 @@ impl Expector {
         }
     }
 
-    // TODO: to_throw_status
-    // TODO: allow this to accept a regex to do fuzzy matching?
-    pub fn to_throw_message(&mut self, message_to_match: &str) -> Result<(), String> {
+    pub fn to_throw_status_and_message(
+        &mut self,
+        status_code_to_match: i64,
+        message_to_match: &str,
+    ) -> Result<(), String> {
+        let check1 = self.to_throw_status(status_code_to_match);
+        let check2 = self.to_throw_message(message_to_match);
+
+        if check1.is_err() {
+            return check1;
+        } else if check2.is_err() {
+            return check2;
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn to_throw_status(&mut self, status_code_to_match: i64) -> Result<(), String> {
         let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
         let ast = ast_guard.as_ref().unwrap();
 
@@ -123,14 +138,11 @@ impl Expector {
             _ => return Err("Type mismatch".into()), // TODO: Better message
         };
 
-        let mut message = String::new();
         let mut status_code = String::new();
 
         if let Err(ref err) = result {
             let stack_trace = get_stack_trace(err);
-            message = stack_trace.last().unwrap().message.clone();
             status_code = stack_trace.last().unwrap().status_code.clone();
-            //println!("{:?}", err);
 
             match **err {
                 rhai::EvalAltResult::ErrorInFunctionCall(_, _, ref inner, _) => {
@@ -151,6 +163,7 @@ impl Expector {
         }
 
         let condition = result.is_err();
+        let condition2 = status_code == status_code_to_match.to_string();
 
         if !condition && !self.negative {
             let error = format!("Expected function to throw but it did not");
@@ -160,7 +173,78 @@ impl Expector {
             let error = format!("Expected function to not throw but it did");
 
             Err(error)
-        } else if (condition && message != message_to_match) {
+        } else if (condition && !condition2) {
+            Err(format!(
+                "Expected function to throw error with status '{}' but instead received '{}'",
+                status_code_to_match, status_code
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn to_throw_message(&mut self, message_to_match: &str) -> Result<(), String> {
+        let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
+        let ast = ast_guard.as_ref().unwrap();
+
+        let engine = create_engine();
+
+        let result = match &self.value {
+            ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
+            _ => return Err("Type mismatch".into()), // TODO: Better message
+        };
+
+        let mut message = String::new();
+
+        if let Err(ref err) = result {
+            let stack_trace = get_stack_trace(err);
+            message = stack_trace.last().unwrap().message.clone();
+
+            match **err {
+                rhai::EvalAltResult::ErrorInFunctionCall(_, _, ref inner, _) => {
+                    if !matches!(**inner, rhai::EvalAltResult::ErrorInFunctionCall(..)) {
+                        return Err(get_stack_trace_output(
+                            "Unexpected error ocurred when running tests.".to_string(),
+                            &stack_trace,
+                        ));
+                    }
+                }
+                _ => {
+                    return Err(get_stack_trace_output(
+                        "Unexpected error ocurred when running tests.".to_string(),
+                        &stack_trace,
+                    ))
+                }
+            }
+        }
+
+        let condition = result.is_err();
+        let condition2 = message == message_to_match;
+        let condition3 = {
+            let regex = Regex::new(message_to_match);
+            let mut result = false;
+
+            match regex {
+                Ok(regex) => {
+                    result = regex.is_match(&message);
+                }
+                Err(_) => {
+                    result = false;
+                }
+            }
+
+            result
+        };
+
+        if !condition && !self.negative {
+            let error = format!("Expected function to throw but it did not");
+
+            Err(error)
+        } else if condition && self.negative {
+            let error = format!("Expected function to not throw but it did");
+
+            Err(error)
+        } else if (condition && (!condition2 && !condition3)) {
             Err(format!(
                 "Expected function to throw error with message '{}' but instead received '{}'",
                 message_to_match, message
@@ -183,7 +267,6 @@ impl Expector {
 
         if let Err(ref err) = result {
             let stack_trace = get_stack_trace(err);
-            //println!("{:?}", err);
 
             match **err {
                 rhai::EvalAltResult::ErrorInFunctionCall(_, _, ref inner, _) => {
