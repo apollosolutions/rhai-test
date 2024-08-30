@@ -1,6 +1,8 @@
 use crate::engine::create_engine;
+use colored::Colorize;
 use regex::Regex;
-use rhai::{Dynamic, EvalAltResult, FnPtr, ImmutableString, AST};
+use rhai::{Dynamic, EvalAltResult, FnPtr, ImmutableString, Map, Position, AST};
+use std::fmt::Write;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone)]
@@ -119,18 +121,26 @@ impl Expector {
             _ => return Err("Type mismatch".into()), // TODO: Better message
         };
 
-        // TODO: Capture error message(s) (stack track type of thing?) and display it on bad errors... effectively do a recursive function that goes through the errors and captures the message and adds it to a vec
         // TODO: Capture inner error message on good errors so we can do tests against it
-        // TODO: Can we do helpful error messages for certain error types? (E.g. ErrorModuleNotFound remind the user to import into inner scope?)
         if let Err(ref err) = result {
+            let stack_trace = get_stack_trace(err);
+            //println!("{:?}", err);
+
             match **err {
                 rhai::EvalAltResult::ErrorInFunctionCall(_, _, ref inner, _) => {
                     if !matches!(**inner, rhai::EvalAltResult::ErrorInFunctionCall(..)) {
-                        // This runs if the inner error is NOT an ErrorInFunctionCall
-                        return Err("Unexpected error ocurred when running tests.".to_string());
+                        return Err(get_stack_trace_output(
+                            "Unexpected error ocurred when running tests.".to_string(),
+                            &stack_trace,
+                        ));
                     }
                 }
-                _ => return Err("Unexpected error ocurred when running tests.".to_string()),
+                _ => {
+                    return Err(get_stack_trace_output(
+                        "Unexpected error ocurred when running tests.".to_string(),
+                        &stack_trace,
+                    ))
+                }
             }
         }
 
@@ -149,4 +159,89 @@ impl Expector {
             Ok(())
         }
     }
+}
+
+#[derive(Debug, Clone)]
+struct StackTraceDetail {
+    pub message: String,
+    pub position: Position,
+    pub source: Option<String>,
+}
+
+impl StackTraceDetail {
+    pub fn new(message: String, position: Position, source: Option<String>) -> Self {
+        Self {
+            message,
+            position,
+            source,
+        }
+    }
+}
+
+fn get_stack_trace(error: &Box<EvalAltResult>) -> Vec<StackTraceDetail> {
+    let mut stack_trace = Vec::<StackTraceDetail>::new();
+
+    // TODO: Add rest of arms for error types
+    match **error {
+        rhai::EvalAltResult::ErrorInFunctionCall(ref name, ref source, ref inner, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                name.clone(),
+                position.clone(),
+                Some(source.clone()),
+            ));
+
+            stack_trace.extend(get_stack_trace(&inner));
+        }
+        rhai::EvalAltResult::ErrorModuleNotFound(ref module_name, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Module not found: {}. Hint: If you're importing a module in a test file, don't forget to use inline imports scoped to the function you're using the import in.", module_name.clone().to_string()),
+                position.clone(),
+                None,
+            ));
+        }
+        rhai::EvalAltResult::ErrorRuntime(ref error_token, ref position) => {
+            if let Some(map) = error_token.read_lock::<Map>() {
+                let message = map.get("message").unwrap().to_string();
+                let status = map.get("status").unwrap().to_string();
+
+                stack_trace.push(StackTraceDetail::new(
+                    format!("{} (status: {})", message, status),
+                    position.clone(),
+                    None,
+                ));
+            } else {
+                stack_trace.push(StackTraceDetail::new(
+                    error_token.clone().to_string(),
+                    position.clone(),
+                    None,
+                ));
+            }
+        }
+        _ => {
+            println!("\t{}", " Unknown error occurred. ".red());
+        }
+    }
+
+    stack_trace
+}
+
+fn get_stack_trace_output(message: String, stack_trace: &Vec<StackTraceDetail>) -> String {
+    let mut output = String::new();
+
+    output.push_str(&message);
+    output.push_str("\n");
+
+    // Iterate over stack trace details in reverse order
+    for stack_trace_detail in stack_trace.iter().rev() {
+        writeln!(
+            output,
+            "\t\t\tAt {}: {} ({})",
+            stack_trace_detail.position,
+            stack_trace_detail.message,
+            stack_trace_detail.source.clone().unwrap_or("".to_string())
+        )
+        .unwrap();
+    }
+
+    output
 }
