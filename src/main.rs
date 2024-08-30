@@ -127,15 +127,6 @@ fn main() {
                             container.get_tests().clone().to_vec()
                         };
 
-                        //expectors.lock().unwrap().iter_mut().for_each(|expector| {
-                        //expector.attach_engine_and_ast(engine.clone(), ast_arc.clone());
-                        //});
-
-                        /*expectors.lock().unwrap().iter_mut().for_each(|expector| {
-                            println!("Debug 1");
-                            expector.debug();
-                        });*/
-
                         let runner: TestRunner = TestRunner::new();
                         let run_result = runner.run_tests(
                             &engine.lock().unwrap(),
@@ -143,11 +134,6 @@ fn main() {
                             &path,
                             &tests,
                         );
-
-                        /*expectors.lock().unwrap().iter_mut().for_each(|expector| {
-                            println!("Debug 2");
-                            expector.debug();
-                        });*/
 
                         let mut container = test_container.lock().unwrap();
                         container.passed_tests += run_result.passed_tests;
