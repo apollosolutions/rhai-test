@@ -1,15 +1,7 @@
 use crate::engine::create_engine;
 use regex::Regex;
-use rhai::{
-    module_resolvers::FileModuleResolver, Dynamic, Engine, EvalAltResult, FnPtr, Func,
-    ImmutableString, AST,
-};
-use std::{
-    arch::aarch64::int32x2_t,
-    cell::RefCell,
-    rc::Rc,
-    sync::{Arc, Mutex},
-};
+use rhai::{Dynamic, EvalAltResult, FnPtr, ImmutableString, AST};
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone)]
 pub enum ExpectedValue {
@@ -127,7 +119,7 @@ impl Expector {
             _ => return Err("Type mismatch".into()), // TODO: Better message
         };
 
-        // TODO: Capture error message(s) (stack track type of thing?) and display it on bad errors
+        // TODO: Capture error message(s) (stack track type of thing?) and display it on bad errors... effectively do a recursive function that goes through the errors and captures the message and adds it to a vec
         // TODO: Capture inner error message on good errors so we can do tests against it
         // TODO: Can we do helpful error messages for certain error types? (E.g. ErrorModuleNotFound remind the user to import into inner scope?)
         if let Err(ref err) = result {
