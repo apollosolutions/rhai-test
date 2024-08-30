@@ -69,7 +69,8 @@ fn main() {
             .register_fn("not", Expector::not)
             .register_fn("to_be", Expector::to_be)
             .register_fn("to_match", Expector::to_match)
-            .register_fn("to_throw", Expector::to_throw);
+            .register_fn("to_throw", Expector::to_throw)
+            .register_fn("to_throw_message", Expector::to_throw_message);
 
         let resolver = FileModuleResolver::new_with_path("examples"); // TODO: This should be configurable
         engine_guard.set_module_resolver(resolver);

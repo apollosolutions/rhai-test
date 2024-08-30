@@ -110,6 +110,66 @@ impl Expector {
         }
     }
 
+    // TODO: to_throw_status
+    // TODO: allow this to accept a regex to do fuzzy matching?
+    pub fn to_throw_message(&mut self, message_to_match: &str) -> Result<(), String> {
+        let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
+        let ast = ast_guard.as_ref().unwrap();
+
+        let engine = create_engine();
+
+        let result = match &self.value {
+            ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
+            _ => return Err("Type mismatch".into()), // TODO: Better message
+        };
+
+        let mut message = String::new();
+        let mut status_code = String::new();
+
+        if let Err(ref err) = result {
+            let stack_trace = get_stack_trace(err);
+            message = stack_trace.last().unwrap().message.clone();
+            status_code = stack_trace.last().unwrap().status_code.clone();
+            //println!("{:?}", err);
+
+            match **err {
+                rhai::EvalAltResult::ErrorInFunctionCall(_, _, ref inner, _) => {
+                    if !matches!(**inner, rhai::EvalAltResult::ErrorInFunctionCall(..)) {
+                        return Err(get_stack_trace_output(
+                            "Unexpected error ocurred when running tests.".to_string(),
+                            &stack_trace,
+                        ));
+                    }
+                }
+                _ => {
+                    return Err(get_stack_trace_output(
+                        "Unexpected error ocurred when running tests.".to_string(),
+                        &stack_trace,
+                    ))
+                }
+            }
+        }
+
+        let condition = result.is_err();
+
+        if !condition && !self.negative {
+            let error = format!("Expected function to throw but it did not");
+
+            Err(error)
+        } else if condition && self.negative {
+            let error = format!("Expected function to not throw but it did");
+
+            Err(error)
+        } else if (condition && message != message_to_match) {
+            Err(format!(
+                "Expected function to throw error with message '{}' but instead received '{}'",
+                message_to_match, message
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn to_throw(&mut self) -> Result<(), String> {
         let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
         let ast = ast_guard.as_ref().unwrap();
@@ -121,7 +181,6 @@ impl Expector {
             _ => return Err("Type mismatch".into()), // TODO: Better message
         };
 
-        // TODO: Capture inner error message on good errors so we can do tests against it
         if let Err(ref err) = result {
             let stack_trace = get_stack_trace(err);
             //println!("{:?}", err);
@@ -146,7 +205,6 @@ impl Expector {
 
         let condition = result.is_err();
 
-        // TODO: Support specific throw messages
         if !condition && !self.negative {
             let error = format!("Expected function to throw but it did not");
 
@@ -164,14 +222,16 @@ impl Expector {
 #[derive(Debug, Clone)]
 struct StackTraceDetail {
     pub message: String,
+    pub status_code: String,
     pub position: Position,
-    pub source: Option<String>,
+    pub source: String,
 }
 
 impl StackTraceDetail {
-    pub fn new(message: String, position: Position, source: Option<String>) -> Self {
+    pub fn new(message: String, status_code: String, position: Position, source: String) -> Self {
         Self {
             message,
+            status_code,
             position,
             source,
         }
@@ -186,8 +246,9 @@ fn get_stack_trace(error: &Box<EvalAltResult>) -> Vec<StackTraceDetail> {
         rhai::EvalAltResult::ErrorInFunctionCall(ref name, ref source, ref inner, ref position) => {
             stack_trace.push(StackTraceDetail::new(
                 name.clone(),
+                "".to_string(),
                 position.clone(),
-                Some(source.clone()),
+                source.clone(),
             ));
 
             stack_trace.extend(get_stack_trace(&inner));
@@ -195,8 +256,9 @@ fn get_stack_trace(error: &Box<EvalAltResult>) -> Vec<StackTraceDetail> {
         rhai::EvalAltResult::ErrorModuleNotFound(ref module_name, ref position) => {
             stack_trace.push(StackTraceDetail::new(
                 format!("Module not found: {}. Hint: If you're importing a module in a test file, don't forget to use inline imports scoped to the function you're using the import in.", module_name.clone().to_string()),
+                "".to_string(),
                 position.clone(),
-                None,
+                "".to_string(),
             ));
         }
         rhai::EvalAltResult::ErrorRuntime(ref error_token, ref position) => {
@@ -205,15 +267,17 @@ fn get_stack_trace(error: &Box<EvalAltResult>) -> Vec<StackTraceDetail> {
                 let status = map.get("status").unwrap().to_string();
 
                 stack_trace.push(StackTraceDetail::new(
-                    format!("{} (status: {})", message, status),
+                    message,
+                    status.clone().to_string(),
                     position.clone(),
-                    None,
+                    "".to_string(),
                 ));
             } else {
                 stack_trace.push(StackTraceDetail::new(
                     error_token.clone().to_string(),
+                    "".to_string(),
                     position.clone(),
-                    None,
+                    "".to_string(),
                 ));
             }
         }
@@ -236,9 +300,7 @@ fn get_stack_trace_output(message: String, stack_trace: &Vec<StackTraceDetail>) 
         writeln!(
             output,
             "\t\t\tAt {}: {} ({})",
-            stack_trace_detail.position,
-            stack_trace_detail.message,
-            stack_trace_detail.source.clone().unwrap_or("".to_string())
+            stack_trace_detail.position, stack_trace_detail.message, stack_trace_detail.source
         )
         .unwrap();
     }
