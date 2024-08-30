@@ -87,7 +87,6 @@ fn main() {
     }
 
     for path in &test_files {
-        println!("{}", path);
         let test_file_content = fs::read_to_string(path).expect("Unable to read rhai test file");
 
         let cloned_container = test_container.clone();
