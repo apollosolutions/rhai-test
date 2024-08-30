@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use colored::*;
-use rhai::{Engine, EvalAltResult, FnPtr, AST};
+use rhai::FnPtr;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Test {
