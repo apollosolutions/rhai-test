@@ -5,6 +5,7 @@ mod test_container;
 mod test_runner;
 
 use clap::Parser;
+use colored::*;
 use engine::create_engine;
 use expector::Expector;
 use glob::glob;
@@ -33,14 +34,17 @@ fn main() {
     let start_time = Instant::now();
 
     let args = Args::parse();
-    let config_string = fs::read_to_string(args.config).expect("Unable to read config file");
+    let config_string = fs::read_to_string(args.config).expect("Unable to read config file.");
 
-    let config: Config = serde_json::from_str(&config_string).expect("JSON was not well-formatted");
+    let config: Config =
+        serde_json::from_str(&config_string).expect("Config file JSON was not well-formatted.");
 
     let mut test_files: Vec<String> = Vec::new();
 
     for path in &config.test_match {
-        for entry in glob(path).expect("Failed to read glob pattern") {
+        for entry in
+            glob(path).expect("Failed to read a glob pattern for config file 'testMatch' value")
+        {
             match entry {
                 Ok(path) => test_files.push(path.display().to_string()),
                 Err(e) => println!("{:?}", e),
@@ -56,6 +60,7 @@ fn main() {
     let cloned_expectors = expectors.clone();
     let cloned_shared_ast = shared_ast.clone();
 
+    // Attach the test specific functions to the engine
     {
         let mut engine_guard = engine.lock().unwrap();
         engine_guard
@@ -78,6 +83,7 @@ fn main() {
             );
     }
 
+    // Now run each test file
     for path in &test_files {
         let test_file_content = fs::read_to_string(path).expect("Unable to read rhai test file");
 
@@ -93,7 +99,7 @@ fn main() {
 
         engine.lock().unwrap().register_fn("test", test);
 
-        let ast = {
+        let ast: Result<AST, rhai::ParseError> = {
             let engine_guard = engine.lock().unwrap();
             engine_guard.compile(&test_file_content)
         };
@@ -134,13 +140,15 @@ fn main() {
                             container.fail_suite(&path);
                         }
                     }
-                    Err(err) => {
-                        println!("Eval error: {}", err);
+                    Err(error) => {
+                        println!("{} {}", " FAIL ".white().on_red().bold(), path);
+                        println!("\t{}", format!("Eval Error: {}", error).red());
                     }
                 }
             }
             Err(error) => {
-                println!("Compilation Error: {}", error);
+                println!("{} {}", " FAIL ".white().on_red().bold(), path);
+                println!("\t{}", format!("Compilation Error: {}", error).red());
             }
         }
     }
