@@ -1,7 +1,7 @@
 fn process_request(request) {
     log_info("processing request");
     let valid_client_names = ["apollo-client", "retail-website"];
-    
+
     if ("apollographql-client-version" in request.headers && "apollographql-client-name" in request.headers) {
       let client_header = request.headers["apollographql-client-version"];
       let name_header = request.headers["apollographql-client-name"];      

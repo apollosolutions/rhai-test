@@ -26,9 +26,11 @@ struct Args {
 }
 
 #[derive(Deserialize, Debug)]
-struct Config {
+pub struct Config {
     #[serde(rename = "testMatch")]
     test_match: Vec<String>,
+
+    coverage: Option<bool>,
 }
 
 fn main() {
@@ -55,13 +57,18 @@ fn main() {
 
     let test_container = Arc::new(Mutex::new(TestContainer::new()));
     let test_coverage_container = Arc::new(Mutex::new(TestCoverageContainer::new()));
-    let engine = Arc::new(Mutex::new(create_engine(test_coverage_container.clone())));
+    let config_shared = Arc::new(Mutex::new(config));
+    let engine = Arc::new(Mutex::new(create_engine(
+        test_coverage_container.clone(),
+        config_shared.clone(),
+    )));
     let shared_ast: Arc<Mutex<Option<AST>>> = Arc::new(Mutex::new(None));
 
     let expectors = Arc::new(Mutex::new(Vec::<Expector>::new()));
     let cloned_expectors = expectors.clone();
     let cloned_shared_ast = shared_ast.clone();
     let test_coverage_container_clone = test_coverage_container.clone();
+    let cloned_config_shared = config_shared.clone();
 
     // Attach the test specific functions to the engine
     {
@@ -73,6 +80,7 @@ fn main() {
                 expector.attach(
                     cloned_shared_ast.clone(),
                     test_coverage_container_clone.clone(),
+                    cloned_config_shared.clone(),
                 );
                 cloned_expectors.lock().unwrap().push(expector.clone());
                 expector
@@ -160,8 +168,11 @@ fn main() {
     }
     let end_time = Instant::now();
 
+    if (config_shared.lock().unwrap().coverage.unwrap_or_default()) {
+        test_coverage_container.lock().unwrap().print_results();
+    }
+
     test_container.lock().unwrap().print_results();
-    test_coverage_container.lock().unwrap().print_results();
 
     let elapsed_time = end_time - start_time;
 

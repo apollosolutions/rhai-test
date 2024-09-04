@@ -1,5 +1,6 @@
 use crate::engine::create_engine;
 use crate::extensions::file_coverage::TestCoverageContainer;
+use crate::Config;
 use colored::Colorize;
 use regex::Regex;
 use rhai::{Dynamic, EvalAltResult, FnPtr, ImmutableString, Map, Position, AST};
@@ -33,6 +34,7 @@ pub struct Expector {
     pub negative: bool,
     ast: Option<Arc<Mutex<Option<AST>>>>,
     test_coverage_container: Option<Arc<Mutex<TestCoverageContainer>>>,
+    config: Option<Arc<Mutex<Config>>>,
 }
 
 impl Expector {
@@ -42,6 +44,7 @@ impl Expector {
             negative: false,
             ast: None,
             test_coverage_container: None,
+            config: None,
         }
     }
 
@@ -49,9 +52,11 @@ impl Expector {
         &mut self,
         ast: Arc<Mutex<Option<AST>>>,
         test_coverage_container: Arc<Mutex<TestCoverageContainer>>,
+        config: Arc<Mutex<Config>>,
     ) {
         self.ast = Some(ast);
         self.test_coverage_container = Some(test_coverage_container);
+        self.config = Some(config);
     }
 
     pub fn not(mut self) -> Self {
@@ -140,8 +145,9 @@ impl Expector {
         let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
         let ast = ast_guard.as_ref().unwrap();
         let test_coverage_container = self.test_coverage_container.clone().unwrap();
+        let config = self.config.clone().unwrap();
 
-        let engine = create_engine(test_coverage_container);
+        let engine = create_engine(test_coverage_container, config);
 
         let result = match &self.value {
             ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
@@ -188,8 +194,9 @@ impl Expector {
         let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
         let ast = ast_guard.as_ref().unwrap();
         let test_coverage_container = self.test_coverage_container.clone().unwrap();
+        let config = self.config.clone().unwrap();
 
-        let engine = create_engine(test_coverage_container);
+        let engine = create_engine(test_coverage_container, config);
 
         let result = match &self.value {
             ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
@@ -251,8 +258,9 @@ impl Expector {
         let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
         let ast = ast_guard.as_ref().unwrap();
         let test_coverage_container = self.test_coverage_container.clone().unwrap();
+        let config = self.config.clone().unwrap();
 
-        let engine = create_engine(test_coverage_container);
+        let engine = create_engine(test_coverage_container, config);
 
         let result = match &self.value {
             ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),

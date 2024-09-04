@@ -1,3 +1,4 @@
 {
-  "testMatch": ["**/*.test.rhai"]
+  "testMatch": ["**/*.test.rhai"],
+  "coverage": true
 }

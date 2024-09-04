@@ -43,7 +43,9 @@ impl FileCoverageModuleResolver {
 }
 
 impl ModuleResolver for FileCoverageModuleResolver {
-    // Only required function.
+    // TODO: Need to re-implement the file caching cause this is probably a bottleneck
+    // TODO: Using this module resolver is like 2x slower compared to normal resolver... but it seems to be the instrumenting, not the module resolve
+    // TODO: But this could also be that due to a lack of caching, it is re-instrumenting the module for every test
     fn resolve(
         &self,
         engine: &Engine,
@@ -296,8 +298,6 @@ impl TestCoverageContainer {
     }
 
     pub fn print_results(&mut self) {
-        println!("Coverage:");
-
         let mut report_data = Vec::<CoverageReportLine>::new();
 
         self.sources.iter().for_each(|(_, coverage_source)| {
@@ -325,14 +325,6 @@ impl TestCoverageContainer {
                     .iter()
                     .filter(|(_, statement)| statement.is_hit)
                     .count();
-                println!(
-                    "total_statements: {}, hit_statements: {}",
-                    total_statements, hit_statements
-                );
-                println!(
-                    "coverage_source.statements: {:?}",
-                    coverage_source.statements
-                );
                 let percent = (hit_statements as f64 / total_statements as f64) * 100.0;
                 if percent >= 80.0 {
                     percent.to_string().green()
@@ -361,7 +353,7 @@ impl TestCoverageContainer {
         });
 
         let table = Table::new(report_data).with(Style::modern()).to_string();
-        println!("{}", table);
+        println!("\n\n{}", table);
     }
 }
 
