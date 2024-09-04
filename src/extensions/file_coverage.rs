@@ -16,8 +16,7 @@ use std::{
     rc::Rc,
     sync::{Arc, Mutex},
 };
-use tabled::Table;
-use tabled::Tabled;
+use tabled::{settings::Style, Table, Tabled};
 
 pub struct FileCoverageModuleResolver {
     base_path: PathBuf,
@@ -252,7 +251,7 @@ impl TestCoverageContainer {
             });
         });
 
-        let table = Table::new(report_data).to_string();
+        let table = Table::new(report_data).with(Style::modern()).to_string();
         println!("{}", table);
     }
 }
