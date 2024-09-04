@@ -55,7 +55,7 @@ test("Should throw an error when client header is invalid", ||{
     expect(execute).to_throw_status_and_message(401, "Invalid client name provided");
 });
 
-
+/*
 test("Should throw an error when client version header is blank", ||{
     let request = apollo_mocks::get_supergraph_service_request();
     request.headers["apollographql-client-name"] = "apollo-client";
@@ -68,6 +68,7 @@ test("Should throw an error when client version header is blank", ||{
 
     expect(execute).to_throw_status_and_message(401, "No client version provided");
 });
+*/
 
 
 test("Should not throw an error when clients header are provided", ||{

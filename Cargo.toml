@@ -10,7 +10,6 @@ debug = true
 
 [dependencies]
 apollo-router = { path = "/Users/andrew/source/repos/router/apollo-router" }
-ascii_table = "4.0.4"
 clap = { version = "4.5.1", features = ["derive"] }
 colored = "2.1.0"
 glob = "0.3.1"
