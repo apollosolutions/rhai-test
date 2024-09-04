@@ -1,4 +1,8 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::BTreeMap,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
     coverage_reporting::{
@@ -8,16 +12,21 @@ use crate::{
     extensions::{self},
     Config,
 };
-use rhai::{module_resolvers::FileModuleResolver, Engine};
+use rhai::{module_resolvers::FileModuleResolver, Engine, Module};
 
 pub fn create_engine(
     test_coverage_container: Arc<Mutex<TestCoverageContainer>>,
     config: Arc<Mutex<Config>>,
+    module_cache: Arc<Mutex<BTreeMap<PathBuf, Arc<Module>>>>,
 ) -> Engine {
     let mut engine = Engine::new();
 
     if (config.lock().unwrap().coverage.unwrap_or_default()) {
-        let resolver = FileCoverageModuleResolver::new("examples", test_coverage_container.clone());
+        let resolver = FileCoverageModuleResolver::new(
+            "examples",
+            test_coverage_container.clone(),
+            module_cache,
+        );
         engine.set_module_resolver(resolver);
     } else {
         let resolver = FileModuleResolver::new_with_path("examples"); // TODO: This should be configurable

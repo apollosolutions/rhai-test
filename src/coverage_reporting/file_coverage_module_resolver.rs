@@ -1,6 +1,7 @@
 use super::{instrumentation::instrument_line, test_coverage_container::TestCoverageContainer};
 use rhai::{Engine, EvalAltResult, Module, ModuleResolver, Position, Scope};
 use std::{
+    collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
@@ -9,16 +10,19 @@ use std::{
 pub struct FileCoverageModuleResolver {
     base_path: PathBuf,
     test_coverage_container: Arc<Mutex<TestCoverageContainer>>,
+    cache: Arc<Mutex<BTreeMap<PathBuf, Arc<Module>>>>,
 }
 
 impl FileCoverageModuleResolver {
     pub fn new(
         base_path: impl Into<PathBuf>,
         test_coverage_container: Arc<Mutex<TestCoverageContainer>>,
+        module_cache: Arc<Mutex<BTreeMap<PathBuf, Arc<Module>>>>,
     ) -> Self {
         Self {
             base_path: base_path.into(),
             test_coverage_container,
+            cache: module_cache,
         }
     }
 
@@ -40,9 +44,6 @@ impl FileCoverageModuleResolver {
 }
 
 impl ModuleResolver for FileCoverageModuleResolver {
-    // TODO: Need to re-implement the file caching cause this is probably a bottleneck
-    // TODO: Using this module resolver is like 2x slower compared to normal resolver... but it seems to be the instrumenting, not the module resolve
-    // TODO: But this could also be that due to a lack of caching, it is re-instrumenting the module for every test
     fn resolve(
         &self,
         engine: &Engine,
@@ -58,7 +59,11 @@ impl ModuleResolver for FileCoverageModuleResolver {
             .and_then(|p| Path::new(p).parent());
         let file_path = self.get_file_path(path, source_path);
 
-        let mut contents = fs::read_to_string(file_path)
+        if let Some(module) = self.cache.lock().unwrap().get(&file_path) {
+            return Ok(module.clone());
+        }
+
+        let mut contents = fs::read_to_string(file_path.clone())
             .map_err(|_| Box::new(EvalAltResult::ErrorModuleNotFound(path.to_string(), pos)))?;
 
         contents = contents
@@ -79,9 +84,11 @@ impl ModuleResolver for FileCoverageModuleResolver {
         })?;
         ast.set_source(path);
 
-        let m = Module::eval_ast_as_new_raw(engine, scope, global, &ast)
+        let m: Arc<Module> = Module::eval_ast_as_new_raw(engine, scope, global, &ast)
             .map_err(|err| Box::new(EvalAltResult::ErrorInModule(path.to_string(), err, pos)))?
             .into();
+
+        self.cache.lock().unwrap().insert(file_path, m.clone());
 
         Ok(m)
     }

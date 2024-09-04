@@ -9,9 +9,11 @@ use engine::expector::Expector;
 use engine::test_container::TestContainer;
 use engine::test_runner::TestRunner;
 use glob::glob;
-use rhai::{Dynamic, FnPtr, AST};
+use rhai::{Dynamic, FnPtr, Module, AST};
 use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::fs::{self};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -55,9 +57,11 @@ fn main() {
     let test_container = Arc::new(Mutex::new(TestContainer::new()));
     let test_coverage_container = Arc::new(Mutex::new(TestCoverageContainer::new()));
     let config_shared = Arc::new(Mutex::new(config));
+    let module_cache = Arc::new(Mutex::new(BTreeMap::<PathBuf, Arc<Module>>::new()));
     let engine = Arc::new(Mutex::new(create_engine(
         test_coverage_container.clone(),
         config_shared.clone(),
+        module_cache.clone(),
     )));
     let shared_ast: Arc<Mutex<Option<AST>>> = Arc::new(Mutex::new(None));
 
@@ -66,6 +70,7 @@ fn main() {
     let cloned_shared_ast = shared_ast.clone();
     let test_coverage_container_clone = test_coverage_container.clone();
     let cloned_config_shared = config_shared.clone();
+    let cloned_module_cache = module_cache.clone();
 
     // Attach the test specific functions to the engine
     {
@@ -78,6 +83,7 @@ fn main() {
                     cloned_shared_ast.clone(),
                     test_coverage_container_clone.clone(),
                     cloned_config_shared.clone(),
+                    cloned_module_cache.clone(),
                 );
                 cloned_expectors.lock().unwrap().push(expector.clone());
                 expector
