@@ -1,15 +1,10 @@
-use colored::*;
-use regex::Regex;
+use super::{instrumentation::instrument_line, test_coverage_container::TestCoverageContainer};
 use rhai::{Engine, EvalAltResult, Module, ModuleResolver, Position, Scope};
 use std::{
-    collections::HashMap,
     fs,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
-use tabled::{settings::Style, Table, Tabled};
-
-use super::{instrumentation::instrument_line, test_coverage_container::TestCoverageContainer};
 
 pub struct FileCoverageModuleResolver {
     base_path: PathBuf,

@@ -1,10 +1,8 @@
 use crate::coverage_reporting::test_coverage_container::TestCoverageContainer;
 use crate::engine::engine::create_engine;
 use crate::Config;
-use colored::Colorize;
 use regex::Regex;
-use rhai::{Dynamic, EvalAltResult, FnPtr, ImmutableString, Map, Position, AST};
-use std::fmt::Write;
+use rhai::{Dynamic, EvalAltResult, FnPtr, ImmutableString, AST};
 use std::sync::{Arc, Mutex};
 
 use super::error_handling::{get_inner_most_error, get_stack_trace, get_stack_trace_output};

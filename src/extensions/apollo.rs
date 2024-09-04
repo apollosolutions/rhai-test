@@ -1,6 +1,3 @@
-use std::sync::Arc;
-use std::time::Instant;
-
 use apollo_router::_private::rhai as ApolloRhai;
 use apollo_router::_private::rhai::engine::SharedMut;
 use apollo_router::_private::rhai::{execution, router, subgraph, supergraph};
@@ -18,6 +15,8 @@ use rhai::Shared;
 use rhai::{plugin::*, Map};
 use rhai::{Engine, FnPtr};
 use serde_json::json;
+use std::sync::Arc;
+use std::time::Instant;
 
 pub fn register_rhai_functions_and_types(engine: &mut Engine) {
     let mut module = exported_module!(ApolloRhai::engine::router_plugin);

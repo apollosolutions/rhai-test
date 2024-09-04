@@ -1,15 +1,6 @@
-use colored::*;
-use regex::Regex;
-use rhai::{Engine, EvalAltResult, Module, ModuleResolver, Position, Scope};
-use std::{
-    collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex},
-};
-use tabled::{settings::Style, Table, Tabled};
-
 use crate::coverage_reporting::test_coverage_container::TestCoverageContainer;
+use rhai::Engine;
+use std::sync::{Arc, Mutex};
 
 pub fn register_rhai_functions_and_types(
     engine: &mut Engine,

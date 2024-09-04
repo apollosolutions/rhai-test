@@ -1,15 +1,6 @@
-use colored::*;
-use regex::Regex;
-use rhai::{Engine, EvalAltResult, Module, ModuleResolver, Position, Scope};
-use std::{
-    collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex},
-};
-use tabled::{settings::Style, Table, Tabled};
-
 use super::test_coverage_container::TestCoverageContainer;
+use regex::Regex;
+use std::sync::{Arc, Mutex};
 
 pub fn instrument_line(
     i: usize,

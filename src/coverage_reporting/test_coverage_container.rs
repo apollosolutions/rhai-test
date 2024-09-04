@@ -1,12 +1,5 @@
 use colored::*;
-use regex::Regex;
-use rhai::{Engine, EvalAltResult, Module, ModuleResolver, Position, Scope};
-use std::{
-    collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex},
-};
+use std::collections::HashMap;
 use tabled::{settings::Style, Table, Tabled};
 
 #[derive(Debug)]

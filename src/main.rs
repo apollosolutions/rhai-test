@@ -1,7 +1,6 @@
 mod coverage_reporting;
 mod engine;
 mod extensions;
-
 use clap::Parser;
 use colored::*;
 use coverage_reporting::test_coverage_container::TestCoverageContainer;
