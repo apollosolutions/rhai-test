@@ -1,0 +1,96 @@
+use colored::*;
+use regex::Regex;
+use rhai::{Engine, EvalAltResult, Module, ModuleResolver, Position, Scope};
+use std::{
+    collections::HashMap,
+    fs,
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+};
+use tabled::{settings::Style, Table, Tabled};
+
+use super::test_coverage_container::TestCoverageContainer;
+
+pub fn instrument_line(
+    i: usize,
+    line: &str,
+    path: &str,
+    test_coverage_container: Arc<Mutex<TestCoverageContainer>>,
+) -> String {
+    let mut result = String::from(line);
+
+    if let Some(captures) = Regex::new(r#"fn (.+?)\(.*?\)\s*?\{"#)
+        .unwrap()
+        .captures(line)
+    {
+        // Instrument Functions
+        if let Some(matched) = captures.get(1) {
+            let function_name = matched.as_str();
+
+            test_coverage_container.lock().unwrap().add_function(
+                function_name.to_string(),
+                path.to_string(),
+                (i as i64) + 1,
+            );
+
+            let instrumentation = format!(
+                "rhai_test_coverage_instrument_function(\"{}\",\"{}\",{} );",
+                function_name,
+                path,
+                (i as i64) + 1
+            );
+            result = format!("{} {}", line, instrumentation);
+        }
+    } else if (Regex::new(r#".+?\(.*?\);"#).unwrap().is_match(line)) {
+        // Function Call Statements
+        test_coverage_container
+            .lock()
+            .unwrap()
+            .add_statement(path.to_string(), (i as i64) + 1);
+
+        let instrumentation = format!(
+            "rhai_test_coverage_instrument_statement(\"{}\",{} );",
+            path,
+            (i as i64) + 1
+        );
+        result = format!("{} {}", line, instrumentation);
+    } else if (Regex::new(r#"(let )?.+?=.+?;"#).unwrap().is_match(line)) {
+        // Variable declarations
+        test_coverage_container
+            .lock()
+            .unwrap()
+            .add_statement(path.to_string(), (i as i64) + 1);
+
+        let instrumentation = format!(
+            "rhai_test_coverage_instrument_statement(\"{}\",{} );",
+            path,
+            (i as i64) + 1
+        );
+        result = format!("{} {}", line, instrumentation);
+    } else if (Regex::new(r#"(else|else if|if).+?\{"#)
+        .unwrap()
+        .is_match(line))
+    {
+        // Branches
+        let instrumentation = format!(
+            "rhai_test_coverage_instrument_branch(\"{}\",{} );",
+            path,
+            (i as i64) + 1
+        );
+        result = format!("{} {}", line, instrumentation);
+    } else if (Regex::new(r#"throw.+?\{"#).unwrap().is_match(line)) {
+        // throws
+        test_coverage_container
+            .lock()
+            .unwrap()
+            .add_statement(path.to_string(), (i as i64) + 1);
+
+        let instrumentation = format!(
+            "rhai_test_coverage_instrument_statement(\"{}\",{} );",
+            path,
+            (i as i64) + 1
+        );
+        result = format!("{} {}", instrumentation, line);
+    }
+    result
+}

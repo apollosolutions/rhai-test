@@ -1,5 +1,5 @@
+use crate::coverage_reporting::test_coverage_container::TestCoverageContainer;
 use crate::engine::engine::create_engine;
-use crate::extensions::file_coverage::TestCoverageContainer;
 use crate::Config;
 use colored::Colorize;
 use regex::Regex;

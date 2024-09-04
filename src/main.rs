@@ -1,13 +1,14 @@
+mod coverage_reporting;
 mod engine;
 mod extensions;
 
 use clap::Parser;
 use colored::*;
+use coverage_reporting::test_coverage_container::TestCoverageContainer;
 use engine::engine::create_engine;
 use engine::expector::Expector;
 use engine::test_container::TestContainer;
 use engine::test_runner::TestRunner;
-use extensions::file_coverage::TestCoverageContainer;
 use glob::glob;
 use rhai::{Dynamic, FnPtr, AST};
 use serde::Deserialize;

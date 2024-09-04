@@ -1,10 +1,11 @@
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    extensions::{
-        self,
-        file_coverage::{FileCoverageModuleResolver, TestCoverageContainer},
+    coverage_reporting::{
+        file_coverage_module_resolver::FileCoverageModuleResolver,
+        test_coverage_container::TestCoverageContainer,
     },
+    extensions::{self},
     Config,
 };
 use rhai::{module_resolvers::FileModuleResolver, Engine};
