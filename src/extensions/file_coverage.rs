@@ -23,15 +23,12 @@ pub fn register_rhai_functions_and_types(
             .statement_called(source, line_number);
     };
 
+    let test_coverage_container_branches_clone = test_coverage_container.clone();
     let rhai_test_coverage_instrument_branch = move |source: String, line_number: i64| {
-        /*println!(
-            "rhai_test_coverage_instrument_statement: {} {}",
-            source, line_number
-        );*/
-        /*test_coverage_container_clone
-        .lock()
-        .unwrap()
-        .function_called(function_name, source, line_number);*/
+        test_coverage_container_branches_clone
+            .lock()
+            .unwrap()
+            .branch_called(source, line_number);
     };
 
     engine.register_fn(

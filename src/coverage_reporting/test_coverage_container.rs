@@ -114,6 +114,22 @@ impl TestCoverageContainer {
             });
     }
 
+    pub fn add_branch(&mut self, source: String, line_number: i64) {
+        self.maybe_add_source(&source);
+        let key = TestCoverageContainer::get_statement_key(&source, &line_number);
+
+        self.sources
+            .get_mut(&source)
+            .unwrap()
+            .branches
+            .entry(key)
+            .or_insert(BranchCoverage {
+                source,
+                line_number,
+                is_hit: false,
+            });
+    }
+
     pub fn function_called(&mut self, function_name: String, source: String, line_number: i64) {
         let key = TestCoverageContainer::get_function_key(&function_name, &source, &line_number);
 
@@ -133,6 +149,18 @@ impl TestCoverageContainer {
             .get_mut(&source)
             .unwrap()
             .statements
+            .get_mut(&key)
+            .unwrap()
+            .is_hit = true;
+    }
+
+    pub fn branch_called(&mut self, source: String, line_number: i64) {
+        let key = TestCoverageContainer::get_statement_key(&source, &line_number);
+
+        self.sources
+            .get_mut(&source)
+            .unwrap()
+            .branches
             .get_mut(&key)
             .unwrap()
             .is_hit = true;
@@ -183,6 +211,22 @@ impl TestCoverageContainer {
                     percent.to_string().red()
                 }
             };
+            let percent_branches = {
+                let total_branches = coverage_source.branches.len();
+                let hit_branches = coverage_source
+                    .branches
+                    .iter()
+                    .filter(|(_, branch)| branch.is_hit)
+                    .count();
+                let percent = (hit_branches as f64 / total_branches as f64) * 100.0;
+                if percent >= 80.0 {
+                    percent.to_string().green()
+                } else if percent >= 50.0 {
+                    percent.to_string().yellow()
+                } else {
+                    percent.to_string().red()
+                }
+            };
             let uncovered_lines = coverage_source
                 .statements
                 .iter()
@@ -194,7 +238,7 @@ impl TestCoverageContainer {
             report_data.push(CoverageReportLine {
                 source: source.to_string(),
                 statements: percent_statements.to_string(),
-                branches: "0".to_string(),
+                branches: percent_branches.to_string(),
                 functions: percent_functions.to_string(),
                 lines: "0".to_string(),
                 uncovered_lines: uncovered_lines.to_string(),

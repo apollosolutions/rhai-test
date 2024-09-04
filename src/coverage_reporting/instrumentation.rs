@@ -62,6 +62,11 @@ pub fn instrument_line(
         .unwrap()
         .is_match(line))
     {
+        test_coverage_container
+            .lock()
+            .unwrap()
+            .add_branch(path.to_string(), (i as i64) + 1);
+
         // Branches
         let instrumentation = format!(
             "rhai_test_coverage_instrument_branch(\"{}\",{} );",
