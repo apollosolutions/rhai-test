@@ -4,7 +4,7 @@ fn process_request(request) {
   
     if ("apollographql-client-version" in request.headers && "apollographql-client-name" in request.headers) {
       let client_header = request.headers["apollographql-client-version"];
-      let name_header = request.headers["apollographql-client-name"];
+      let name_header = request.headers["apollographql-client-name"];      
     
       if !valid_client_names.contains(name_header) {
         log_error("Invalid client name provided");

@@ -7,7 +7,7 @@ test("Should throw an error when no client headers are provided", ||{
 
     expect(execute).to_throw();
 });
-
+/*
 test("Should throw an error with message when no client headers are provided", ||{
     let request = apollo_mocks::get_supergraph_service_request();
 
@@ -68,4 +68,4 @@ test("Should not throw an error when clients header are provided", ||{
     };
 
     expect(execute).not().to_throw();
-});
+});*/

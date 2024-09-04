@@ -8,6 +8,7 @@ use clap::Parser;
 use colored::*;
 use engine::create_engine;
 use expector::Expector;
+use extensions::file_coverage::TestCoverageContainer;
 use glob::glob;
 use rhai::{Dynamic, FnPtr, AST};
 use serde::Deserialize;
@@ -53,12 +54,14 @@ fn main() {
     }
 
     let test_container = Arc::new(Mutex::new(TestContainer::new()));
-    let engine = Arc::new(Mutex::new(create_engine()));
+    let test_coverage_container = Arc::new(Mutex::new(TestCoverageContainer::new()));
+    let engine = Arc::new(Mutex::new(create_engine(test_coverage_container.clone())));
     let shared_ast: Arc<Mutex<Option<AST>>> = Arc::new(Mutex::new(None));
 
     let expectors = Arc::new(Mutex::new(Vec::<Expector>::new()));
     let cloned_expectors = expectors.clone();
     let cloned_shared_ast = shared_ast.clone();
+    let test_coverage_container_clone = test_coverage_container.clone();
 
     // Attach the test specific functions to the engine
     {
@@ -67,7 +70,10 @@ fn main() {
             .register_type_with_name::<Expector>("Expector")
             .register_fn("expect", move |value: Dynamic| {
                 let mut expector = Expector::new(value);
-                expector.attach_engine_and_ast(cloned_shared_ast.clone());
+                expector.attach(
+                    cloned_shared_ast.clone(),
+                    test_coverage_container_clone.clone(),
+                );
                 cloned_expectors.lock().unwrap().push(expector.clone());
                 expector
             })
@@ -155,6 +161,7 @@ fn main() {
     let end_time = Instant::now();
 
     test_container.lock().unwrap().print_results();
+    test_coverage_container.lock().unwrap().print_results();
 
     let elapsed_time = end_time - start_time;
 
