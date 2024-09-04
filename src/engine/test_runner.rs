@@ -1,7 +1,7 @@
 use colored::*;
 use rhai::{Engine, EvalAltResult, AST};
 
-use crate::test_container::Test;
+use crate::engine::test_container::Test;
 
 pub struct TestSuiteResult {
     pub passed_tests: i32,

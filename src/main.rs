@@ -1,13 +1,12 @@
 mod engine;
-mod expector;
 mod extensions;
-mod test_container;
-mod test_runner;
 
 use clap::Parser;
 use colored::*;
-use engine::create_engine;
-use expector::Expector;
+use engine::engine::create_engine;
+use engine::expector::Expector;
+use engine::test_container::TestContainer;
+use engine::test_runner::TestRunner;
 use extensions::file_coverage::TestCoverageContainer;
 use glob::glob;
 use rhai::{Dynamic, FnPtr, AST};
@@ -15,8 +14,6 @@ use serde::Deserialize;
 use std::fs::{self};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
-use test_container::TestContainer;
-use test_runner::TestRunner;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
