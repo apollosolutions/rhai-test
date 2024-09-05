@@ -1,5 +1,7 @@
 use super::{instrumentation::instrument_line, test_coverage_container::TestCoverageContainer};
-use rhai::{Engine, EvalAltResult, Module, ModuleResolver, Position, Scope};
+use rhai::{
+    Engine, EvalAltResult, Expr, FnCallExpr, Module, ModuleResolver, Position, Scope, Stmt, AST,
+};
 use std::{
     collections::BTreeMap,
     fs,

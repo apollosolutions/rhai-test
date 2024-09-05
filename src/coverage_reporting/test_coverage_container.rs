@@ -224,13 +224,30 @@ impl TestCoverageContainer {
                     percent.to_string().red()
                 }
             };
-            let uncovered_lines = coverage_source
+            let uncovered_statements = coverage_source
                 .statements
                 .iter()
                 .filter(|(_, statement)| !statement.is_hit)
-                .map(|(_, statement)| statement.line_number.to_string())
-                .collect::<Vec<_>>()
-                .join(",");
+                .map(|(_, statement)| statement.line_number)
+                .collect::<Vec<_>>();
+            let uncovered_functions = coverage_source
+                .functions
+                .iter()
+                .filter(|(_, function)| !function.is_hit)
+                .map(|(_, function)| function.line_number)
+                .collect::<Vec<_>>();
+
+            let uncovered_lines = {
+                let mut uncovered_line_numbers = uncovered_statements.clone();
+                uncovered_line_numbers.extend(uncovered_functions.clone());
+                uncovered_line_numbers.sort();
+                uncovered_line_numbers.dedup();
+                uncovered_line_numbers
+                    .iter()
+                    .map(|line| line.to_string())
+                    .collect::<Vec<String>>()
+                    .join(",")
+            };
 
             report_data.push(CoverageReportLine {
                 source: source.to_string(),

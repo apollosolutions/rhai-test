@@ -1,0 +1,141 @@
+##################################################
+# 1. Type the following, then run
+test("this is a passing test", ||{
+    expect("a").to_be("a");    
+});
+
+#################################################
+# 2. then change to be a failing test
+test("this is a passing test", ||{
+    expect("a").to_be("b");    
+});
+
+#################################################
+# 3. Make it passing by adding "not"
+
+test("Should pass a negative string assert", ||{
+    expect("a").not().to_be("b")
+});
+
+#################################################
+# 4. Show a "to_match"
+
+test("Should pass a positive match assert", ||{
+    expect("a-b-c").to_match(".-.-.")
+});
+
+#################################################
+# 5. Show a syntax error in test
+
+test("Should pass a positive match assert", ||{
+    expect(some_var).to_match(".-.-.")
+});
+
+
+#################################################
+# 6. Show we can use router functions by updating to_match test
+
+test("Should generate a uuid", ||{
+    let uuid = uuid_v4();
+
+    expect(uuid).to_match(".{8}-.{4}-.{4}-.{4}-.{12}");
+});
+
+#################################################
+# 7. Show client_id script, nuke example tests, and show first "useful test", walking through the mocks and "to_throw"
+
+test("Should throw an error when no client headers are provided", ||{
+    let request = apollo_mocks::get_supergraph_service_request();
+
+    const execute = || {
+        import "client_id" as client_id;
+        client_id::process_request(request);
+    };
+
+    expect(execute).to_throw();
+});
+
+#################################################
+# 8. Show import error with stack trace
+
+test("Should throw an error when no client headers are provided", ||{
+    let request = apollo_mocks::get_supergraph_service_request();
+
+    const execute = || {
+        //import "client_id" as client_id;
+        client_id::process_request(request);
+    };
+
+    expect(execute).to_throw();
+});
+
+#################################################
+# 9. Show to_throw_message
+
+test("Should throw an error when apollographql-client-version header is not provided", ||{
+    let request = apollo_mocks::get_supergraph_service_request();
+    request.headers["apollographql-client-name"] = "apollo-client";
+
+    const execute = || {
+        import "client_id" as client_id;
+        client_id::process_request(request);
+    };
+
+    expect(execute).to_throw_message("No client headers set.");
+});
+
+#################################################
+# 10. Show to_throw_status
+
+test("Should throw an error when apollographql-client-name header is not provided", ||{
+    let request = apollo_mocks::get_supergraph_service_request();
+    request.headers["apollographql-client-version"] = "1.0";
+
+    const execute = || {
+        import "client_id" as client_id;
+        client_id::process_request(request);
+    };
+
+    expect(execute).to_throw_status(401);
+});
+
+#################################################
+# 11. Show to_throw_status_and_message
+
+test("Should throw an error when client header is invalid", ||{
+    let request = apollo_mocks::get_supergraph_service_request();
+    request.headers["apollographql-client-name"] = "abc123";
+    request.headers["apollographql-client-version"] = "1.0";
+
+    const execute = || {
+        import "client_id" as client_id;
+        client_id::process_request(request);
+    };
+
+    expect(execute).to_throw_status_and_message(401, "Invalid client name provided");
+});
+
+#################################################
+# 12. Show not().to_throw()
+
+test("Should not throw an error when clients header are provided", ||{
+    let request = apollo_mocks::get_supergraph_service_request();
+    request.headers["apollographql-client-name"] = "apollo-client";
+    request.headers["apollographql-client-version"] = "1.0";
+
+    const execute = || {
+        import "client_id" as client_id;
+        client_id::process_request(request);
+    };
+
+    expect(execute).not().to_throw();
+});
+
+#################################################
+# 13. Show error with stack trace by breaking a log line in client_id script
+
+
+#################################################
+# 14. (if time) show "coverage metrics" and missing lines example
+
+Then bring in apollo test file and comment out only the one test

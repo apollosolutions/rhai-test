@@ -30,7 +30,11 @@ pub fn instrument_line(
                 path,
                 (i as i64) + 1
             );
-            result = format!("{} {}", line, instrumentation);
+
+            result = Regex::new(r#"(?P<c1>fn .+?\(.*?\)\s*?\{)(?P<c2>.*?)"#)
+                .unwrap()
+                .replace(&result, format!("$c1 {} $c2", instrumentation))
+                .to_string();
         }
     } else if (Regex::new(r#".+?\(.*?\);"#).unwrap().is_match(line)) {
         // Function Call Statements
