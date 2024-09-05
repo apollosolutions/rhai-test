@@ -46,9 +46,6 @@ struct CoverageReportLine {
     #[tabled(rename = "% Funcs")]
     functions: String,
 
-    #[tabled(rename = "% Lines")]
-    lines: String,
-
     #[tabled(rename = "Uncovered Line #s")]
     uncovered_lines: String,
 }
@@ -240,7 +237,6 @@ impl TestCoverageContainer {
                 statements: percent_statements.to_string(),
                 branches: percent_branches.to_string(),
                 functions: percent_functions.to_string(),
-                lines: "0".to_string(),
                 uncovered_lines: uncovered_lines.to_string(),
             });
         });
