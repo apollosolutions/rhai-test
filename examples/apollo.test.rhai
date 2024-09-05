@@ -25,7 +25,7 @@ test("Should generate a uuid", ||{
 });
 
 test("Should get environment variables", ||{
-    get_testing_utils().set_env("MY_COOL_ENV_VAR", "hello");
+    test_helpers::set_env("MY_COOL_ENV_VAR", "hello");
     let result = `${env::get("MY_COOL_ENV_VAR")}`;
 
     expect(result).to_be("hello");

@@ -1,23 +1,19 @@
-use rhai::Engine;
+use rhai::Shared;
+use rhai::{plugin::*, Map};
+use rhai::{Engine, FnPtr};
 use std::env;
 
-// TODO: Update these helpers to be more like apollo_mocks with "engine.register_static_module"
 pub fn register_rhai_functions_and_types(engine: &mut Engine) {
-    engine
-        .register_type_with_name::<TestHelpers>("TestHelpers")
-        .register_fn("get_testing_utils", TestHelpers::new)
-        .register_fn("set_env", TestHelpers::set_env);
+    let test_helpers_module = exported_module!(test_helpers);
+
+    engine.register_static_module("test_helpers", test_helpers_module.into());
 }
 
-#[derive(Debug, Clone)]
-pub struct TestHelpers {}
+#[export_module]
+mod test_helpers {
 
-impl TestHelpers {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn set_env(&mut self, name: &str, value: &str) {
+    #[rhai_fn()]
+    pub(crate) fn set_env(name: &str, value: &str) {
         env::set_var(name, value);
     }
 }
