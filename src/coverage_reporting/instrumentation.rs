@@ -36,7 +36,7 @@ pub fn instrument_line(
                 .replace(&result, format!("$c1 {} $c2", instrumentation))
                 .to_string();
         }
-    } else if (Regex::new(r#".+?\(.*?\);"#).unwrap().is_match(line)) {
+    } else if Regex::new(r#".+?\(.*?\);"#).unwrap().is_match(line) {
         // Function Call Statements
         test_coverage_container
             .lock()
@@ -49,7 +49,7 @@ pub fn instrument_line(
             (i as i64) + 1
         );
         result = format!("{} {}", line, instrumentation);
-    } else if (Regex::new(r#"(let )?.+?=.+?;"#).unwrap().is_match(line)) {
+    } else if Regex::new(r#"(let )?.+?=.+?;"#).unwrap().is_match(line) {
         // Variable declarations
         test_coverage_container
             .lock()
@@ -62,9 +62,9 @@ pub fn instrument_line(
             (i as i64) + 1
         );
         result = format!("{} {}", line, instrumentation);
-    } else if (Regex::new(r#"(else|else if|if).+?\{"#)
+    } else if Regex::new(r#"(else|else if|if).+?\{"#)
         .unwrap()
-        .is_match(line))
+        .is_match(line)
     {
         test_coverage_container
             .lock()
@@ -78,7 +78,7 @@ pub fn instrument_line(
             (i as i64) + 1
         );
         result = format!("{} {}", line, instrumentation);
-    } else if (Regex::new(r#"throw.+?\{"#).unwrap().is_match(line)) {
+    } else if Regex::new(r#"throw.+?\{"#).unwrap().is_match(line) {
         // throws
         test_coverage_container
             .lock()

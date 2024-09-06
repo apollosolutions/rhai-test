@@ -12,7 +12,9 @@ struct TestCoverageSource {
 
 #[derive(Debug)]
 struct FunctionCoverage {
+    #[allow(dead_code)]
     pub function_name: String,
+    #[allow(dead_code)]
     pub source: String,
     pub line_number: i64,
     pub is_hit: bool,
@@ -20,6 +22,7 @@ struct FunctionCoverage {
 
 #[derive(Debug)]
 struct StatementCoverage {
+    #[allow(dead_code)]
     pub source: String,
     pub line_number: i64,
     pub is_hit: bool,
@@ -27,6 +30,7 @@ struct StatementCoverage {
 
 #[derive(Debug)]
 struct BranchCoverage {
+    #[allow(dead_code)]
     pub source: String,
     pub line_number: i64,
     pub is_hit: bool,
@@ -236,10 +240,17 @@ impl TestCoverageContainer {
                 .filter(|(_, function)| !function.is_hit)
                 .map(|(_, function)| function.line_number)
                 .collect::<Vec<_>>();
+            let uncovered_branches = coverage_source
+                .branches
+                .iter()
+                .filter(|(_, branch)| !branch.is_hit)
+                .map(|(_, branch)| branch.line_number)
+                .collect::<Vec<_>>();
 
             let uncovered_lines = {
                 let mut uncovered_line_numbers = uncovered_statements.clone();
                 uncovered_line_numbers.extend(uncovered_functions.clone());
+                uncovered_line_numbers.extend(uncovered_branches.clone());
                 uncovered_line_numbers.sort();
                 uncovered_line_numbers.dedup();
                 uncovered_line_numbers

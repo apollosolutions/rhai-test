@@ -1,7 +1,5 @@
 use super::{instrumentation::instrument_line, test_coverage_container::TestCoverageContainer};
-use rhai::{
-    Engine, EvalAltResult, Expr, FnCallExpr, Module, ModuleResolver, Position, Scope, Stmt, AST,
-};
+use rhai::{Engine, EvalAltResult, Module, ModuleResolver, Position, Scope};
 use std::{
     collections::BTreeMap,
     fs,
@@ -28,7 +26,7 @@ impl FileCoverageModuleResolver {
         }
     }
 
-    pub fn get_file_path(&self, path: &str, source_path: Option<&Path>) -> PathBuf {
+    pub fn get_file_path(&self, path: &str) -> PathBuf {
         let path = Path::new(path);
 
         let mut file_path: PathBuf;
@@ -49,17 +47,13 @@ impl ModuleResolver for FileCoverageModuleResolver {
     fn resolve(
         &self,
         engine: &Engine,
-        source: Option<&str>,
+        _source: Option<&str>,
         path: &str,
         pos: Position,
     ) -> Result<rhai::Shared<rhai::Module>, Box<rhai::EvalAltResult>> {
         let global = &mut engine.new_global_runtime_state();
         let scope = &mut Scope::new();
-        let source_path = global
-            .source()
-            .or(source)
-            .and_then(|p| Path::new(p).parent());
-        let file_path = self.get_file_path(path, source_path);
+        let file_path = self.get_file_path(path);
 
         if let Some(module) = self.cache.lock().unwrap().get(&file_path) {
             return Ok(module.clone());

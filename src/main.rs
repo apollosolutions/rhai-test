@@ -171,7 +171,7 @@ fn main() {
     }
     let end_time = Instant::now();
 
-    if (config_shared.lock().unwrap().coverage.unwrap_or_default()) {
+    if config_shared.lock().unwrap().coverage.unwrap_or_default() {
         test_coverage_container.lock().unwrap().print_results();
     }
 

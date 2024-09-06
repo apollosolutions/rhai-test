@@ -103,7 +103,7 @@ pub fn get_stack_trace_output(message: String, stack_trace: &Vec<StackTraceDetai
 }
 
 pub fn get_inner_most_error(error: &Box<EvalAltResult>) -> &Box<EvalAltResult> {
-    let mut inner_most_error;
+    let inner_most_error;
 
     match **error {
         rhai::EvalAltResult::ErrorInFunctionCall(_, _, ref inner, _) => {

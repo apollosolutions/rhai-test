@@ -1,6 +1,5 @@
-use rhai::Shared;
-use rhai::{plugin::*, Map};
-use rhai::{Engine, FnPtr};
+use rhai::plugin::*;
+use rhai::Engine;
 use std::env;
 
 pub fn register_rhai_functions_and_types(engine: &mut Engine) {

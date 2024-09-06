@@ -21,7 +21,7 @@ pub fn create_engine(
 ) -> Engine {
     let mut engine = Engine::new();
 
-    if (config.lock().unwrap().coverage.unwrap_or_default()) {
+    if config.lock().unwrap().coverage.unwrap_or_default() {
         let resolver = FileCoverageModuleResolver::new(
             "examples",
             test_coverage_container.clone(),
