@@ -26,9 +26,17 @@ pub fn get_stack_trace(error: &Box<EvalAltResult>) -> Vec<StackTraceDetail> {
 
     // TODO: Add rest of arms for error types
     match **error {
+        rhai::EvalAltResult::ErrorSystem(ref message, ..) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Unknown System Error: {}", message.clone()),
+                "".to_string(),
+                Position::NONE,
+                "".to_string(),
+            ));
+        }
         rhai::EvalAltResult::ErrorInFunctionCall(ref name, ref source, ref inner, ref position) => {
             stack_trace.push(StackTraceDetail::new(
-                name.clone(),
+                format!("Error in function call: {}", name),
                 "".to_string(),
                 position.clone(),
                 source.clone(),
@@ -74,6 +82,244 @@ pub fn get_stack_trace(error: &Box<EvalAltResult>) -> Vec<StackTraceDetail> {
                 position.clone(),
                 "".to_string(),
             ));
+        }
+        rhai::EvalAltResult::ErrorParsing(ref syntax_error, position) => {
+            match syntax_error {
+                rhai::ParseErrorType::UnexpectedEOF => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Unexpected end of file",),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::BadInput(ref lex_error) => match lex_error {
+                    rhai::LexError::UnexpectedInput(symbol) => {
+                        stack_trace.push(StackTraceDetail::new(
+                            format!("Parsing Error: Unexpected symbol: {}", symbol),
+                            "".to_string(),
+                            position.clone(),
+                            "".to_string(),
+                        ));
+                    }
+                    rhai::LexError::UnterminatedString => {
+                        stack_trace.push(StackTraceDetail::new(
+                            format!("Parsing Error: String literal not terminated before new-line or EOF."),
+                            "".to_string(),
+                            position.clone(),
+                            "".to_string(),
+                        ));
+                    }
+                    rhai::LexError::StringTooLong(..) => {
+                        stack_trace.push(StackTraceDetail::new(
+                            format!("Parsing Error: identifier or string literal longer than the maximum allowed length."),
+                            "".to_string(),
+                            position.clone(),
+                            "".to_string(),
+                        ));
+                    }
+                    rhai::LexError::MalformedEscapeSequence(sequence) => {
+                        stack_trace.push(StackTraceDetail::new(
+                            format!("Parsing Error: string/character/numeric escape sequence is in an invalid format: {}", sequence),
+                            "".to_string(),
+                            position.clone(),
+                            "".to_string(),
+                        ));
+                    }
+                    rhai::LexError::MalformedNumber(number) => {
+                        stack_trace.push(StackTraceDetail::new(
+                            format!(
+                                "Parsing Error: numeric literal is in an invalid format: {}",
+                                number
+                            ),
+                            "".to_string(),
+                            position.clone(),
+                            "".to_string(),
+                        ));
+                    }
+                    rhai::LexError::MalformedChar(char) => {
+                        stack_trace.push(StackTraceDetail::new(
+                            format!(
+                                "Parsing Error: character literal is in an invalid format: {}",
+                                char
+                            ),
+                            "".to_string(),
+                            position.clone(),
+                            "".to_string(),
+                        ));
+                    }
+                    rhai::LexError::MalformedIdentifier(identifier) => {
+                        stack_trace.push(StackTraceDetail::new(
+                            format!(
+                                "Parsing Error: identifier is in an invalid format: {}",
+                                identifier
+                            ),
+                            "".to_string(),
+                            position.clone(),
+                            "".to_string(),
+                        ));
+                    }
+                    rhai::LexError::ImproperSymbol(a, b) => {
+                        stack_trace.push(StackTraceDetail::new(
+                            format!("Parsing Error: Bad symbol encountered: {} {}", a, b),
+                            "".to_string(),
+                            position.clone(),
+                            "".to_string(),
+                        ));
+                    }
+                    rhai::LexError::Runtime(message) => {
+                        stack_trace.push(StackTraceDetail::new(
+                            format!("Parsing Error: Runtime error: {}", message),
+                            "".to_string(),
+                            position.clone(),
+                            "".to_string(),
+                        ));
+                    }
+                    _ => {
+                        println!("\t{}", " Unknown parsing error occurred. ".red());
+                    }
+                },
+                rhai::ParseErrorType::UnknownOperator(ref operator) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: unknown operator encountered: {}", operator),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::MissingToken(ref token, ref description) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Expected token: {} {}", token, description),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::MissingSymbol(ref description) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Expected Symbol: {}", description),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::MalformedIndexExpr(ref description) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Syntax error with expression in indexing brackets `[]`: {}", description),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::MalformedCapture(ref description) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!(
+                            "Parsing Error: Syntax error with a capture: {}",
+                            description
+                        ),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::DuplicatedProperty(ref description) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!(
+                            "Parsing Error: Map definition has duplicated property names: {}",
+                            description
+                        ),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::DuplicatedVariable(ref description) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: variable name duplicated: {}", description),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::WrongSwitchIntegerCase => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: numeric case of `switch` statement is in an appropriate place."),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::WrongSwitchDefaultCase => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: default case of `switch` statement is in an appropriate place."),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::WrongSwitchCaseCondition => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: case condition of `switch` statement is not appropriate"),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::PropertyExpected => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Missing property name for custom type or map"),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::VariableExpected => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Missing variable name after a `let`, `const`, `for` or `catch` keyword."),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::ForbiddenVariable(name) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Forbidden variable name: {}", name),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::Reserved(name) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Reserved symbol: {}", name),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::MismatchedType(requested, actual) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!(
+                            "Parsing Error: Type mismatch. Requested: {}, Actual: {}",
+                            requested, actual
+                        ),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::ExprExpected(expression) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Expression expected: {}", expression),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                _ => {
+                    println!("\t{}", " Unknown parsing error occurred. ".red());
+                }
+            }
         }
         _ => {
             println!("\t{}", " Unknown error occurred. ".red());
