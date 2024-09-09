@@ -31,4 +31,4 @@ fn process_request(request) {
     }    
   }
 
-fn my_function(){}
+  fn(){}

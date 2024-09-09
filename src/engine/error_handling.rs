@@ -21,7 +21,10 @@ impl StackTraceDetail {
     }
 }
 
-pub fn get_stack_trace(error: &Box<EvalAltResult>) -> Vec<StackTraceDetail> {
+pub fn get_stack_trace(
+    error: &Box<EvalAltResult>,
+    parent_source: Option<String>,
+) -> Vec<StackTraceDetail> {
     let mut stack_trace = Vec::<StackTraceDetail>::new();
 
     // TODO: Add rest of arms for error types
@@ -34,16 +37,77 @@ pub fn get_stack_trace(error: &Box<EvalAltResult>) -> Vec<StackTraceDetail> {
                 "".to_string(),
             ));
         }
+        rhai::EvalAltResult::ErrorVariableExists(ref name, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!(
+                    "Shadowing of an existing variable disallowed: {}",
+                    name.clone()
+                ),
+                "".to_string(),
+                position.clone(),
+                "".to_string(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorForbiddenVariable(ref name, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Forbidden variable name: {}", name.clone()),
+                "".to_string(),
+                position.clone(),
+                "".to_string(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorVariableNotFound(ref name, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Access of an unknown variable: {}", name.clone()),
+                "".to_string(),
+                position.clone(),
+                "".to_string(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorPropertyNotFound(ref name, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Access of an unknown object map property: {}", name.clone()),
+                "".to_string(),
+                position.clone(),
+                "".to_string(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorIndexNotFound(ref name, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Access of an invalid index: {}", name.clone()),
+                "".to_string(),
+                position.clone(),
+                "".to_string(),
+            ));
+        }
         rhai::EvalAltResult::ErrorInFunctionCall(ref name, ref source, ref inner, ref position) => {
+            let file = if !source.is_empty() {
+                format!("{}.rhai", source)
+            } else {
+                String::new()
+            };
             stack_trace.push(StackTraceDetail::new(
                 format!("Error in function call: {}", name),
                 "".to_string(),
                 position.clone(),
-                source.clone(),
+                file.clone(),
             ));
 
-            stack_trace.extend(get_stack_trace(&inner));
+            stack_trace.extend(get_stack_trace(&inner, Some(file.clone())));
         }
+
+        rhai::EvalAltResult::ErrorInModule(ref name, ref inner, ref position) => {
+            let file = format!("{}.rhai", name);
+            stack_trace.push(StackTraceDetail::new(
+                format!("Error in module: {}", name),
+                "".to_string(),
+                position.clone(),
+                "".to_string(),
+            ));
+
+            stack_trace.extend(get_stack_trace(&inner, Some(file.clone())));
+        }
+
         rhai::EvalAltResult::ErrorModuleNotFound(ref module_name, ref position) => {
             stack_trace.push(StackTraceDetail::new(
                 format!("Module not found: {}. Hint: If you're importing a module in a test file, don't forget to use inline imports scoped to the function you're using the import in.", module_name.clone().to_string()),
@@ -74,9 +138,47 @@ pub fn get_stack_trace(error: &Box<EvalAltResult>) -> Vec<StackTraceDetail> {
         }
         rhai::EvalAltResult::ErrorFunctionNotFound(ref function_signature, ref position) => {
             stack_trace.push(StackTraceDetail::new(
+                format!("Function not found: {}.", function_signature),
+                "".to_string(),
+                position.clone(),
+                "".to_string(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorUnboundThis(ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Access to `this` that is not bound."),
+                "".to_string(),
+                position.clone(),
+                "".to_string(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorMismatchDataType(ref requested, ref actual, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
                 format!(
-                    "Function not found: {}.",
-                    function_signature.clone().to_string()
+                    "Data is not of the required type. Requested: {} actual: {}",
+                    requested, actual
+                ),
+                "".to_string(),
+                position.clone(),
+                "".to_string(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorMismatchOutputType(ref requested, ref actual, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!(
+                    "Returned type is not the same as the required output type. Requested: {} actual: {}",
+                    requested, actual
+                ),
+                "".to_string(),
+                position.clone(),
+                "".to_string(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorIndexingType(ref name, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!(
+                    "Tried to index into a type that has no indexer function defined: {}",
+                    name
                 ),
                 "".to_string(),
                 position.clone(),
@@ -316,6 +418,156 @@ pub fn get_stack_trace(error: &Box<EvalAltResult>) -> Vec<StackTraceDetail> {
                         "".to_string(),
                     ));
                 }
+                rhai::ParseErrorType::WrongDocComment => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: doc-comment defined in an appropriate place"),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::WrongFnDefinition => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: function `fn` defined in an appropriate place"),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::FnDuplicatedDefinition(name, params) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: function defined with a name that conflicts with an existing function: {} {}.", name, params),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::FnMissingName => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Missing a function name after the `fn` keyword."),
+                        "".to_string(),
+                        position.clone(),
+                        parent_source.unwrap_or_default(),
+                    ));
+                }
+                rhai::ParseErrorType::FnMissingParams(name) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!(
+                            "Parsing Error: function definition is missing the parameters list: {}",
+                            name
+                        ),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::FnDuplicatedParam(name, param) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!(
+                            "Parsing Error: function definition has duplicated parameters: {} {}",
+                            name, param
+                        ),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::FnMissingBody(name) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!(
+                            "Parsing Error: function definition is missing body: {}",
+                            name
+                        ),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::WrongExport => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Export statement found not at global level.",),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::AssignmentToConstant(name) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Assignment to a constant variable: {}", name),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::AssignmentToInvalidLHS(message) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Assignment to an inappropriate left-hand-side expression: {}", message),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::VariableExists(name) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Variable is already defined: {}", name),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::VariableUndefined(name) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Variable not found: {}", name),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::ModuleUndefined(name) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Imported module not found: {}", name),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::ExprTooDeep => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!(
+                            "Parsing Error: Expression exceeding the maximum levels of complexity."
+                        ),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::TooManyFunctions => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Number of scripted functions over maximum limit."),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::LiteralTooLarge(data_type, size) => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!(
+                            "Parsing Error: Literal exceeding the maximum size: {} {}",
+                            data_type, size
+                        ),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
+                rhai::ParseErrorType::LoopBreak => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Break statement found not inside a loop.",),
+                        "".to_string(),
+                        position.clone(),
+                        "".to_string(),
+                    ));
+                }
                 _ => {
                     println!("\t{}", " Unknown parsing error occurred. ".red());
                 }
@@ -337,10 +589,21 @@ pub fn get_stack_trace_output(message: String, stack_trace: &Vec<StackTraceDetai
 
     // Iterate over stack trace details in reverse order
     for stack_trace_detail in stack_trace.iter().rev() {
+        let source_details = if stack_trace_detail.source != "" {
+            format!(
+                "({}:{:?}:{:?})",
+                stack_trace_detail.source,
+                stack_trace_detail.position.line().unwrap_or_default(),
+                stack_trace_detail.position.position().unwrap_or_default()
+            )
+        } else {
+            "".to_string()
+        };
+
         writeln!(
             output,
-            "\t\t\tAt {}: {} ({})",
-            stack_trace_detail.position, stack_trace_detail.message, stack_trace_detail.source
+            "\t\t{} {}",
+            stack_trace_detail.message, source_details
         )
         .unwrap();
     }

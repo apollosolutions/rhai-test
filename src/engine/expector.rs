@@ -167,7 +167,7 @@ impl Expector {
         let mut status_code = String::new();
 
         if let Err(ref err) = result {
-            let stack_trace = get_stack_trace(err);
+            let stack_trace = get_stack_trace(err, None);
             status_code = stack_trace.last().unwrap().status_code.clone();
             let inner_most_error = get_inner_most_error(err);
 
@@ -217,7 +217,7 @@ impl Expector {
         let mut message = String::new();
 
         if let Err(ref err) = result {
-            let stack_trace = get_stack_trace(err);
+            let stack_trace = get_stack_trace(err, None);
             message = stack_trace.last().unwrap().message.clone();
             let inner_most_error = get_inner_most_error(err);
 
@@ -280,7 +280,7 @@ impl Expector {
         };
 
         if let Err(ref err) = result {
-            let stack_trace = get_stack_trace(err);
+            let stack_trace = get_stack_trace(err, None);
             let inner_most_error = get_inner_most_error(err);
 
             if !matches!(**inner_most_error, rhai::EvalAltResult::ErrorRuntime(..)) {
