@@ -30,5 +30,3 @@ fn process_request(request) {
       };
     }    
   }
-
-  fn(){}

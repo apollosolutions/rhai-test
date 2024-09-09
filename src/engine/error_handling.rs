@@ -34,7 +34,7 @@ pub fn get_stack_trace(
                 format!("Unknown System Error: {}", message.clone()),
                 "".to_string(),
                 Position::NONE,
-                "".to_string(),
+                parent_source.unwrap_or_default(),
             ));
         }
         rhai::EvalAltResult::ErrorVariableExists(ref name, ref position) => {
@@ -45,7 +45,7 @@ pub fn get_stack_trace(
                 ),
                 "".to_string(),
                 position.clone(),
-                "".to_string(),
+                parent_source.unwrap_or_default(),
             ));
         }
         rhai::EvalAltResult::ErrorForbiddenVariable(ref name, ref position) => {
@@ -53,7 +53,7 @@ pub fn get_stack_trace(
                 format!("Forbidden variable name: {}", name.clone()),
                 "".to_string(),
                 position.clone(),
-                "".to_string(),
+                parent_source.unwrap_or_default(),
             ));
         }
         rhai::EvalAltResult::ErrorVariableNotFound(ref name, ref position) => {
@@ -61,7 +61,7 @@ pub fn get_stack_trace(
                 format!("Access of an unknown variable: {}", name.clone()),
                 "".to_string(),
                 position.clone(),
-                "".to_string(),
+                parent_source.unwrap_or_default(),
             ));
         }
         rhai::EvalAltResult::ErrorPropertyNotFound(ref name, ref position) => {
@@ -69,7 +69,7 @@ pub fn get_stack_trace(
                 format!("Access of an unknown object map property: {}", name.clone()),
                 "".to_string(),
                 position.clone(),
-                "".to_string(),
+                parent_source.unwrap_or_default(),
             ));
         }
         rhai::EvalAltResult::ErrorIndexNotFound(ref name, ref position) => {
@@ -77,7 +77,7 @@ pub fn get_stack_trace(
                 format!("Access of an invalid index: {}", name.clone()),
                 "".to_string(),
                 position.clone(),
-                "".to_string(),
+                parent_source.unwrap_or_default(),
             ));
         }
         rhai::EvalAltResult::ErrorInFunctionCall(ref name, ref source, ref inner, ref position) => {
@@ -125,14 +125,14 @@ pub fn get_stack_trace(
                     message,
                     status.clone().to_string(),
                     position.clone(),
-                    "".to_string(),
+                    parent_source.unwrap_or_default(),
                 ));
             } else {
                 stack_trace.push(StackTraceDetail::new(
                     error_token.clone().to_string(),
                     "".to_string(),
                     position.clone(),
-                    "".to_string(),
+                    parent_source.unwrap_or_default(),
                 ));
             }
         }
@@ -141,7 +141,7 @@ pub fn get_stack_trace(
                 format!("Function not found: {}.", function_signature),
                 "".to_string(),
                 position.clone(),
-                "".to_string(),
+                parent_source.unwrap_or_default(),
             ));
         }
         rhai::EvalAltResult::ErrorUnboundThis(ref position) => {
@@ -149,7 +149,7 @@ pub fn get_stack_trace(
                 format!("Access to `this` that is not bound."),
                 "".to_string(),
                 position.clone(),
-                "".to_string(),
+                parent_source.unwrap_or_default(),
             ));
         }
         rhai::EvalAltResult::ErrorMismatchDataType(ref requested, ref actual, ref position) => {
@@ -160,7 +160,7 @@ pub fn get_stack_trace(
                 ),
                 "".to_string(),
                 position.clone(),
-                "".to_string(),
+                parent_source.unwrap_or_default(),
             ));
         }
         rhai::EvalAltResult::ErrorMismatchOutputType(ref requested, ref actual, ref position) => {
@@ -171,7 +171,7 @@ pub fn get_stack_trace(
                 ),
                 "".to_string(),
                 position.clone(),
-                "".to_string(),
+                parent_source.unwrap_or_default(),
             ));
         }
         rhai::EvalAltResult::ErrorIndexingType(ref name, ref position) => {
@@ -182,7 +182,7 @@ pub fn get_stack_trace(
                 ),
                 "".to_string(),
                 position.clone(),
-                "".to_string(),
+                parent_source.unwrap_or_default(),
             ));
         }
         rhai::EvalAltResult::ErrorParsing(ref syntax_error, position) => {
@@ -192,7 +192,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Unexpected end of file",),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::BadInput(ref lex_error) => match lex_error {
@@ -201,7 +201,7 @@ pub fn get_stack_trace(
                             format!("Parsing Error: Unexpected symbol: {}", symbol),
                             "".to_string(),
                             position.clone(),
-                            "".to_string(),
+                            parent_source.unwrap_or_default(),
                         ));
                     }
                     rhai::LexError::UnterminatedString => {
@@ -209,7 +209,7 @@ pub fn get_stack_trace(
                             format!("Parsing Error: String literal not terminated before new-line or EOF."),
                             "".to_string(),
                             position.clone(),
-                            "".to_string(),
+                            parent_source.unwrap_or_default(),
                         ));
                     }
                     rhai::LexError::StringTooLong(..) => {
@@ -217,7 +217,7 @@ pub fn get_stack_trace(
                             format!("Parsing Error: identifier or string literal longer than the maximum allowed length."),
                             "".to_string(),
                             position.clone(),
-                            "".to_string(),
+                            parent_source.unwrap_or_default(),
                         ));
                     }
                     rhai::LexError::MalformedEscapeSequence(sequence) => {
@@ -225,7 +225,7 @@ pub fn get_stack_trace(
                             format!("Parsing Error: string/character/numeric escape sequence is in an invalid format: {}", sequence),
                             "".to_string(),
                             position.clone(),
-                            "".to_string(),
+                            parent_source.unwrap_or_default(),
                         ));
                     }
                     rhai::LexError::MalformedNumber(number) => {
@@ -236,7 +236,7 @@ pub fn get_stack_trace(
                             ),
                             "".to_string(),
                             position.clone(),
-                            "".to_string(),
+                            parent_source.unwrap_or_default(),
                         ));
                     }
                     rhai::LexError::MalformedChar(char) => {
@@ -247,7 +247,7 @@ pub fn get_stack_trace(
                             ),
                             "".to_string(),
                             position.clone(),
-                            "".to_string(),
+                            parent_source.unwrap_or_default(),
                         ));
                     }
                     rhai::LexError::MalformedIdentifier(identifier) => {
@@ -258,7 +258,7 @@ pub fn get_stack_trace(
                             ),
                             "".to_string(),
                             position.clone(),
-                            "".to_string(),
+                            parent_source.unwrap_or_default(),
                         ));
                     }
                     rhai::LexError::ImproperSymbol(a, b) => {
@@ -266,7 +266,7 @@ pub fn get_stack_trace(
                             format!("Parsing Error: Bad symbol encountered: {} {}", a, b),
                             "".to_string(),
                             position.clone(),
-                            "".to_string(),
+                            parent_source.unwrap_or_default(),
                         ));
                     }
                     rhai::LexError::Runtime(message) => {
@@ -274,7 +274,7 @@ pub fn get_stack_trace(
                             format!("Parsing Error: Runtime error: {}", message),
                             "".to_string(),
                             position.clone(),
-                            "".to_string(),
+                            parent_source.unwrap_or_default(),
                         ));
                     }
                     _ => {
@@ -286,7 +286,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: unknown operator encountered: {}", operator),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::MissingToken(ref token, ref description) => {
@@ -294,7 +294,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Expected token: {} {}", token, description),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::MissingSymbol(ref description) => {
@@ -302,7 +302,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Expected Symbol: {}", description),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::MalformedIndexExpr(ref description) => {
@@ -310,7 +310,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Syntax error with expression in indexing brackets `[]`: {}", description),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::MalformedCapture(ref description) => {
@@ -321,7 +321,7 @@ pub fn get_stack_trace(
                         ),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::DuplicatedProperty(ref description) => {
@@ -332,7 +332,7 @@ pub fn get_stack_trace(
                         ),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::DuplicatedVariable(ref description) => {
@@ -340,7 +340,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: variable name duplicated: {}", description),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::WrongSwitchIntegerCase => {
@@ -348,7 +348,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: numeric case of `switch` statement is in an appropriate place."),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::WrongSwitchDefaultCase => {
@@ -356,7 +356,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: default case of `switch` statement is in an appropriate place."),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::WrongSwitchCaseCondition => {
@@ -364,7 +364,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: case condition of `switch` statement is not appropriate"),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::PropertyExpected => {
@@ -372,7 +372,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Missing property name for custom type or map"),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::VariableExpected => {
@@ -380,7 +380,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Missing variable name after a `let`, `const`, `for` or `catch` keyword."),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::ForbiddenVariable(name) => {
@@ -388,7 +388,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Forbidden variable name: {}", name),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::Reserved(name) => {
@@ -396,7 +396,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Reserved symbol: {}", name),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::MismatchedType(requested, actual) => {
@@ -407,7 +407,7 @@ pub fn get_stack_trace(
                         ),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::ExprExpected(expression) => {
@@ -415,7 +415,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Expression expected: {}", expression),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::WrongDocComment => {
@@ -423,7 +423,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: doc-comment defined in an appropriate place"),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::WrongFnDefinition => {
@@ -431,7 +431,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: function `fn` defined in an appropriate place"),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::FnDuplicatedDefinition(name, params) => {
@@ -439,7 +439,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: function defined with a name that conflicts with an existing function: {} {}.", name, params),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::FnMissingName => {
@@ -458,7 +458,7 @@ pub fn get_stack_trace(
                         ),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::FnDuplicatedParam(name, param) => {
@@ -469,7 +469,7 @@ pub fn get_stack_trace(
                         ),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::FnMissingBody(name) => {
@@ -480,7 +480,7 @@ pub fn get_stack_trace(
                         ),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::WrongExport => {
@@ -488,7 +488,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Export statement found not at global level.",),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::AssignmentToConstant(name) => {
@@ -496,7 +496,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Assignment to a constant variable: {}", name),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::AssignmentToInvalidLHS(message) => {
@@ -504,7 +504,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Assignment to an inappropriate left-hand-side expression: {}", message),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::VariableExists(name) => {
@@ -512,7 +512,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Variable is already defined: {}", name),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::VariableUndefined(name) => {
@@ -520,7 +520,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Variable not found: {}", name),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::ModuleUndefined(name) => {
@@ -528,7 +528,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Imported module not found: {}", name),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::ExprTooDeep => {
@@ -538,7 +538,7 @@ pub fn get_stack_trace(
                         ),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::TooManyFunctions => {
@@ -546,7 +546,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Number of scripted functions over maximum limit."),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::LiteralTooLarge(data_type, size) => {
@@ -557,7 +557,7 @@ pub fn get_stack_trace(
                         ),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 rhai::ParseErrorType::LoopBreak => {
@@ -565,7 +565,7 @@ pub fn get_stack_trace(
                         format!("Parsing Error: Break statement found not inside a loop.",),
                         "".to_string(),
                         position.clone(),
-                        "".to_string(),
+                        parent_source.unwrap_or_default(),
                     ));
                 }
                 _ => {

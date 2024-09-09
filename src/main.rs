@@ -5,11 +5,12 @@ use clap::Parser;
 use colored::*;
 use coverage_reporting::test_coverage_container::TestCoverageContainer;
 use engine::engine::create_engine;
+use engine::error_handling::{get_stack_trace, get_stack_trace_output};
 use engine::expector::Expector;
 use engine::test_container::TestContainer;
 use engine::test_runner::TestRunner;
 use glob::glob;
-use rhai::{Dynamic, FnPtr, Module, AST};
+use rhai::{Dynamic, FnPtr, Module, ParseError, AST};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs::{self};
@@ -159,13 +160,31 @@ fn main() {
                     }
                     Err(error) => {
                         println!("{} {}", " FAIL ".white().on_red().bold(), path);
-                        println!("\t{}", format!("Eval Error: {}", error).red());
+                        let stack_trace = get_stack_trace(&error, Some(path.to_string()));
+                        println!(
+                            "{}",
+                            get_stack_trace_output(
+                                "\t\tUnexpected error ocurred when running tests.".to_string(),
+                                &stack_trace,
+                            )
+                            .red()
+                        );
                     }
                 }
             }
             Err(error) => {
+                let ParseError(error_type, position) = error;
+                let rhai_error = rhai::EvalAltResult::ErrorParsing(*error_type, position);
                 println!("{} {}", " FAIL ".white().on_red().bold(), path);
-                println!("\t{}", format!("Compilation Error: {}", error).red());
+                let stack_trace = get_stack_trace(&Box::new(rhai_error), Some(path.to_string()));
+                println!(
+                    "{}",
+                    get_stack_trace_output(
+                        "\t\tUnexpected error ocurred when compiling tests.".to_string(),
+                        &stack_trace,
+                    )
+                    .red()
+                );
             }
         }
     }
