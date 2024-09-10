@@ -185,6 +185,127 @@ pub fn get_stack_trace(
                 parent_source.unwrap_or_default(),
             ));
         }
+        rhai::EvalAltResult::ErrorArrayBounds(ref elements, ref index, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Array access out-of-bounds: {} {}", elements, index),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorStringBounds(ref elements, ref index, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("String indexing out-of-bounds: {} {}", elements, index),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorBitFieldBounds(ref elements, ref index, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Bit-field indexing out-of-bounds: {} {}", elements, index),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorFor(ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("`for` statement encountered a type that is not iterable"),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorDataRace(ref name, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Data race detected when accessing variable: {}", name),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorNonPureMethodCallOnConstant(ref name, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Called a non-pure method on constant: {}", name),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorAssignmentToConstant(ref name, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Assignment to constant variable: {}", name),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorDotExpr(ref name, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Inappropriate property access: {}", name),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorArithmetic(ref message, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Arithmetic error encountered: {}", message),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorTooManyOperations(ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Number of operations over maximum limit"),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorTooManyVariables(ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Number of variables over maximum limit"),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorTooManyModules(ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Number of modules over maximum limit"),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorStackOverflow(ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Call stack over maximum limit"),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::ErrorTerminated(ref token, ref position) => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("The script is prematurely terminated with: {}", token),
+                "".to_string(),
+                position.clone(),
+                parent_source.unwrap_or_default(),
+            ));
+        }
+        rhai::EvalAltResult::LoopBreak(..) => {
+            // Not actually an error
+        }
+        rhai::EvalAltResult::Return(..) => {
+            // Not actually an error
+        }
+        rhai::EvalAltResult::Exit(..) => {
+            // Not actually an error
+        }
         rhai::EvalAltResult::ErrorParsing(ref syntax_error, position) => {
             match syntax_error {
                 rhai::ParseErrorType::UnexpectedEOF => {
@@ -568,13 +689,23 @@ pub fn get_stack_trace(
                         parent_source.unwrap_or_default(),
                     ));
                 }
-                _ => {
-                    println!("\t{}", " Unknown parsing error occurred. ".red());
+                ref unknown_error => {
+                    stack_trace.push(StackTraceDetail::new(
+                        format!("Parsing Error: Unknown error occurred: {}", unknown_error),
+                        "".to_string(),
+                        position.clone(),
+                        parent_source.unwrap_or_default(),
+                    ));
                 }
             }
         }
-        _ => {
-            println!("\t{}", " Unknown error occurred. ".red());
+        ref unknown_error => {
+            stack_trace.push(StackTraceDetail::new(
+                format!("Unknown error occurred: {}", unknown_error),
+                "".to_string(),
+                unknown_error.position(),
+                parent_source.unwrap_or_default(),
+            ));
         }
     }
 
