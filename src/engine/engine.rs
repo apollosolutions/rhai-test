@@ -20,16 +20,18 @@ pub fn create_engine(
     module_cache: Arc<Mutex<BTreeMap<PathBuf, Arc<Module>>>>,
 ) -> Engine {
     let mut engine = Engine::new();
+    let coverage = config.lock().unwrap().coverage;
+    let base_path = config.lock().unwrap().base_path.clone();
 
-    if config.lock().unwrap().coverage.unwrap_or_default() {
+    if coverage.unwrap_or_default() {
         let resolver = FileCoverageModuleResolver::new(
-            "examples",
+            base_path,
             test_coverage_container.clone(),
             module_cache,
         );
         engine.set_module_resolver(resolver);
     } else {
-        let resolver = FileModuleResolver::new_with_path("examples"); // TODO: This should be configurable
+        let resolver = FileModuleResolver::new_with_path(base_path);
         engine.set_module_resolver(resolver);
     }
 

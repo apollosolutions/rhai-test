@@ -27,7 +27,6 @@ pub fn get_stack_trace(
 ) -> Vec<StackTraceDetail> {
     let mut stack_trace = Vec::<StackTraceDetail>::new();
 
-    // TODO: Add rest of arms for error types
     match **error {
         rhai::EvalAltResult::ErrorSystem(ref message, ..) => {
             stack_trace.push(StackTraceDetail::new(

@@ -25,10 +25,14 @@ struct Args {
     config: String,
 }
 
+// TODO Need validation for config
 #[derive(Deserialize, Debug)]
 pub struct Config {
     #[serde(rename = "testMatch")]
     test_match: Vec<String>,
+
+    #[serde(rename = "basePath")]
+    base_path: String,
 
     coverage: Option<bool>,
 }
