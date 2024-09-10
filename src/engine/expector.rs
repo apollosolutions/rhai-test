@@ -2,7 +2,7 @@ use crate::coverage_reporting::test_coverage_container::TestCoverageContainer;
 use crate::engine::engine::create_engine;
 use crate::Config;
 use regex::Regex;
-use rhai::{Dynamic, EvalAltResult, FnPtr, ImmutableString, Module, AST};
+use rhai::{Dynamic, FnPtr, ImmutableString, Module, AST};
 use std::{
     collections::BTreeMap,
     path::PathBuf,
@@ -16,10 +16,12 @@ pub enum ExpectedValue {
     String(String),
     Bool(bool),
     Function(FnPtr),
+    Error(String),
 }
 
 impl ExpectedValue {
-    pub fn from_dynamic(dynamic: &Dynamic) -> Result<Self, Box<EvalAltResult>> {
+    // TODO: Support more types, make sure to add to the equal check below
+    pub fn from_dynamic(dynamic: &Dynamic) -> Result<Self, String> {
         if let Some(s) = dynamic.clone().try_cast::<ImmutableString>() {
             Ok(ExpectedValue::String(s.to_string()))
         } else if let Some(b) = dynamic.clone().try_cast::<bool>() {
@@ -27,10 +29,30 @@ impl ExpectedValue {
         } else if let Some(f) = dynamic.clone().try_cast::<FnPtr>() {
             Ok(ExpectedValue::Function(f))
         } else {
-            Err("Unsupported type".into())
+            Err(format!(
+                "Unsupported type provided to expect() or it's child functions: {}",
+                dynamic.type_name()
+            )
+            .into())
         }
     }
 }
+
+impl PartialEq for ExpectedValue {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (ExpectedValue::String(s1), ExpectedValue::String(s2)) => s1 == s2,
+            (ExpectedValue::Bool(b1), ExpectedValue::Bool(b2)) => b1 == b2,
+            (ExpectedValue::Function(f1), ExpectedValue::Function(f2)) => {
+                f1.to_string() == f2.to_string()
+            }
+            _ => false,
+        }
+    }
+}
+
+// Don't remove this, this is required!
+impl Eq for ExpectedValue {}
 
 #[derive(Debug, Clone)]
 pub struct Expector {
@@ -44,8 +66,13 @@ pub struct Expector {
 
 impl Expector {
     pub fn new(value: Dynamic) -> Self {
+        let value_from_dynamic = match ExpectedValue::from_dynamic(&value) {
+            Ok(val) => val,
+            Err(message) => ExpectedValue::Error(message),
+        };
+
         Self {
-            value: ExpectedValue::from_dynamic(&value).unwrap(),
+            value: value_from_dynamic,
             negative: false,
             ast: None,
             test_coverage_container: None,
@@ -73,18 +100,11 @@ impl Expector {
     }
 
     pub fn to_be(&mut self, expected: Dynamic) -> Result<(), String> {
-        let condition = match (
-            &self.value,
-            &ExpectedValue::from_dynamic(&expected).unwrap(),
-        ) {
-            (ExpectedValue::String(value), ExpectedValue::String(expected_value)) => {
-                value == expected_value
-            }
-            (ExpectedValue::Bool(value), ExpectedValue::Bool(expected_value)) => {
-                value == expected_value
-            }
-            _ => return Err("Type mismatch".into()), // TODO: Better message
-        };
+        if let ExpectedValue::Error(err_msg) = &self.value {
+            return Err(err_msg.clone());
+        }
+
+        let condition = &self.value == &ExpectedValue::from_dynamic(&expected)?;
 
         if !condition && !self.negative {
             let error = format!(
@@ -106,11 +126,15 @@ impl Expector {
     }
 
     pub fn to_match(&mut self, pattern: &str) -> Result<(), String> {
+        if let ExpectedValue::Error(err_msg) = &self.value {
+            return Err(err_msg.clone());
+        }
+
         let regex = Regex::new(pattern).unwrap();
 
         let condition = match &self.value {
             ExpectedValue::String(value) => regex.is_match(value),
-            _ => return Err("Type mismatch".into()), // TODO: Better message
+            _ => return Err("Expected value passed to expect() to be a string".to_string()),
         };
 
         if !condition && !self.negative {
@@ -151,6 +175,10 @@ impl Expector {
 
     // TODO: Refactor these "to throw" methods to be less repetitive if possible
     pub fn to_throw_status(&mut self, status_code_to_match: i64) -> Result<(), String> {
+        if let ExpectedValue::Error(err_msg) = &self.value {
+            return Err(err_msg.clone());
+        }
+
         let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
         let ast = ast_guard.as_ref().unwrap();
         let test_coverage_container = self.test_coverage_container.clone().unwrap();
@@ -161,7 +189,7 @@ impl Expector {
 
         let result = match &self.value {
             ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
-            _ => return Err("Type mismatch".into()), // TODO: Better message
+            _ => return Err("Expected value passed to expect() to be a function".to_string()),
         };
 
         let mut status_code = String::new();
@@ -201,6 +229,10 @@ impl Expector {
     }
 
     pub fn to_throw_message(&mut self, message_to_match: &str) -> Result<(), String> {
+        if let ExpectedValue::Error(err_msg) = &self.value {
+            return Err(err_msg.clone());
+        }
+
         let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
         let ast = ast_guard.as_ref().unwrap();
         let test_coverage_container = self.test_coverage_container.clone().unwrap();
@@ -211,7 +243,7 @@ impl Expector {
 
         let result = match &self.value {
             ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
-            _ => return Err("Type mismatch".into()), // TODO: Better message
+            _ => return Err("Expected value passed to expect() to be a function".to_string()),
         };
 
         let mut message = String::new();
@@ -266,6 +298,10 @@ impl Expector {
     }
 
     pub fn to_throw(&mut self) -> Result<(), String> {
+        if let ExpectedValue::Error(err_msg) = &self.value {
+            return Err(err_msg.clone());
+        }
+
         let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
         let ast = ast_guard.as_ref().unwrap();
         let test_coverage_container = self.test_coverage_container.clone().unwrap();
@@ -276,7 +312,7 @@ impl Expector {
 
         let result = match &self.value {
             ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
-            _ => return Err("Type mismatch".into()), // TODO: Better message
+            _ => return Err("Expected value passed to expect() to be a function".to_string()),
         };
 
         if let Err(ref err) = result {

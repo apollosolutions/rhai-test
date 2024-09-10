@@ -70,8 +70,6 @@ fn main() {
     )));
     let shared_ast: Arc<Mutex<Option<AST>>> = Arc::new(Mutex::new(None));
 
-    let expectors = Arc::new(Mutex::new(Vec::<Expector>::new()));
-    let cloned_expectors = expectors.clone();
     let cloned_shared_ast = shared_ast.clone();
     let test_coverage_container_clone = test_coverage_container.clone();
     let cloned_config_shared = config_shared.clone();
@@ -90,7 +88,6 @@ fn main() {
                     cloned_config_shared.clone(),
                     cloned_module_cache.clone(),
                 );
-                cloned_expectors.lock().unwrap().push(expector.clone());
                 expector
             })
             .register_fn("not", Expector::not)
