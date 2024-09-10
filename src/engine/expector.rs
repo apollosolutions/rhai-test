@@ -2,7 +2,7 @@ use crate::coverage_reporting::test_coverage_container::TestCoverageContainer;
 use crate::engine::engine::create_engine;
 use crate::Config;
 use regex::Regex;
-use rhai::{Dynamic, FnPtr, ImmutableString, Module, AST};
+use rhai::{Dynamic, EvalAltResult, FnPtr, ImmutableString, Module, AST};
 use std::{
     collections::BTreeMap,
     path::PathBuf,
@@ -173,42 +173,15 @@ impl Expector {
         }
     }
 
-    // TODO: Refactor these "to throw" methods to be less repetitive if possible
     pub fn to_throw_status(&mut self, status_code_to_match: i64) -> Result<(), String> {
         if let ExpectedValue::Error(err_msg) = &self.value {
             return Err(err_msg.clone());
         }
 
-        let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
-        let ast = ast_guard.as_ref().unwrap();
-        let test_coverage_container = self.test_coverage_container.clone().unwrap();
-        let config = self.config.clone().unwrap();
-        let module_cache = self.module_cache.clone().unwrap();
-
-        let engine = create_engine(test_coverage_container, config, module_cache);
-
-        let result = match &self.value {
-            ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
-            _ => return Err("Expected value passed to expect() to be a function".to_string()),
-        };
-
-        let mut status_code = String::new();
-
-        if let Err(ref err) = result {
-            let stack_trace = get_stack_trace(err, None);
-            status_code = stack_trace.last().unwrap().status_code.clone();
-            let inner_most_error = get_inner_most_error(err);
-
-            if !matches!(**inner_most_error, rhai::EvalAltResult::ErrorRuntime(..)) {
-                return Err(get_stack_trace_output(
-                    "Unexpected error ocurred when running tests.".to_string(),
-                    &stack_trace,
-                ));
-            }
-        }
+        let (result, _, status_code) = &self.run_throw_function()?;
 
         let condition = result.is_err();
-        let condition2 = status_code == status_code_to_match.to_string();
+        let condition2 = status_code.clone() == status_code_to_match.to_string();
 
         if !condition && !self.negative {
             let error = format!("Expected function to throw but it did not");
@@ -233,33 +206,7 @@ impl Expector {
             return Err(err_msg.clone());
         }
 
-        let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
-        let ast = ast_guard.as_ref().unwrap();
-        let test_coverage_container = self.test_coverage_container.clone().unwrap();
-        let config = self.config.clone().unwrap();
-        let module_cache = self.module_cache.clone().unwrap();
-
-        let engine = create_engine(test_coverage_container, config, module_cache);
-
-        let result = match &self.value {
-            ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
-            _ => return Err("Expected value passed to expect() to be a function".to_string()),
-        };
-
-        let mut message = String::new();
-
-        if let Err(ref err) = result {
-            let stack_trace = get_stack_trace(err, None);
-            message = stack_trace.last().unwrap().message.clone();
-            let inner_most_error = get_inner_most_error(err);
-
-            if !matches!(**inner_most_error, rhai::EvalAltResult::ErrorRuntime(..)) {
-                return Err(get_stack_trace_output(
-                    "Unexpected error ocurred when running tests.".to_string(),
-                    &stack_trace,
-                ));
-            }
-        }
+        let (result, message, ..) = &self.run_throw_function()?;
 
         let condition = result.is_err();
         let condition2 = message == message_to_match;
@@ -302,30 +249,7 @@ impl Expector {
             return Err(err_msg.clone());
         }
 
-        let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
-        let ast = ast_guard.as_ref().unwrap();
-        let test_coverage_container = self.test_coverage_container.clone().unwrap();
-        let config = self.config.clone().unwrap();
-        let module_cache = self.module_cache.clone().unwrap();
-
-        let engine = create_engine(test_coverage_container, config, module_cache);
-
-        let result = match &self.value {
-            ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
-            _ => return Err("Expected value passed to expect() to be a function".to_string()),
-        };
-
-        if let Err(ref err) = result {
-            let stack_trace = get_stack_trace(err, None);
-            let inner_most_error = get_inner_most_error(err);
-
-            if !matches!(**inner_most_error, rhai::EvalAltResult::ErrorRuntime(..)) {
-                return Err(get_stack_trace_output(
-                    "Unexpected error ocurred when running tests.".to_string(),
-                    &stack_trace,
-                ));
-            }
-        }
+        let (result, ..) = &self.run_throw_function()?;
 
         let condition = result.is_err();
 
@@ -340,5 +264,41 @@ impl Expector {
         } else {
             Ok(())
         }
+    }
+
+    fn run_throw_function(
+        &mut self,
+    ) -> Result<(Result<(), Box<EvalAltResult>>, String, String), String> {
+        let ast_guard = &self.ast.as_ref().unwrap().lock().unwrap();
+        let ast = ast_guard.as_ref().unwrap();
+        let test_coverage_container = self.test_coverage_container.clone().unwrap();
+        let config = self.config.clone().unwrap();
+        let module_cache = self.module_cache.clone().unwrap();
+
+        let engine = create_engine(test_coverage_container, config, module_cache);
+
+        let result = match &self.value {
+            ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
+            _ => return Err("Expected value passed to expect() to be a function".to_string()),
+        };
+
+        let mut message = String::new();
+        let mut status_code = String::new();
+
+        if let Err(ref err) = result {
+            let stack_trace = get_stack_trace(err, None);
+            message = stack_trace.last().unwrap().message.clone();
+            status_code = stack_trace.last().unwrap().status_code.clone();
+            let inner_most_error = get_inner_most_error(err);
+
+            if !matches!(**inner_most_error, rhai::EvalAltResult::ErrorRuntime(..)) {
+                return Err(get_stack_trace_output(
+                    "Unexpected error ocurred when running tests.".to_string(),
+                    &stack_trace,
+                ));
+            }
+        }
+
+        Ok((result, message, status_code))
     }
 }
