@@ -16,6 +16,7 @@ use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs::{self};
 use std::path::PathBuf;
+use std::process::exit;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -26,7 +27,6 @@ struct Args {
     config: String,
 }
 
-// TODO Need validation for config
 #[derive(Deserialize, Debug)]
 pub struct Config {
     #[serde(rename = "testMatch")]
@@ -42,10 +42,29 @@ fn main() {
     let start_time = Instant::now();
 
     let args = Args::parse();
-    let config_string = fs::read_to_string(args.config).expect("Unable to read config file.");
+    let config_string = match fs::read_to_string(args.config.clone()) {
+        Ok(file_content) => file_content,
+        Err(error) => {
+            let error_message = format!(
+                "Configuration file not found at {}. Error: {}",
+                args.config, error
+            );
+            println!("{}", error_message.red());
+            exit(99);
+        }
+    };
 
-    let config: Config =
-        serde_json::from_str(&config_string).expect("Config file JSON was not well-formatted.");
+    let config: Config = match serde_json::from_str(&config_string) {
+        Ok(config_object) => config_object,
+        Err(error) => {
+            let error_message = format!(
+                "Configuration file was not well-formatted JSON. Error: {}",
+                error
+            );
+            println!("{}", error_message.red());
+            exit(99);
+        }
+    };
 
     let mut test_files: Vec<String> = Vec::new();
 
