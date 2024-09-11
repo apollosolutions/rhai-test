@@ -46,7 +46,7 @@ jobs:
                     EXEC=${{ env.NAME }}
                 fi
                 mv ./target/${{ matrix.TARGET }}/release/$EXEC ./$EXEC
-                tar -czf ./artifacts/$NAME-${{ matrix.TARGET }}-${{ env.PACKAGE_VERSION }}.tar.gz $EXEC
+                tar -czf ./artifacts/${{ env.NAME }}-${{ matrix.TARGET }}-${{ env.PACKAGE_VERSION }}.tar.gz $EXEC
             - name: Archive artifact
               uses: actions/upload-artifact@v2
               with:
