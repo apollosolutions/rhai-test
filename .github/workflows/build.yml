@@ -11,6 +11,8 @@ jobs:
                       OS: ubuntu-latest
                     - TARGET: aarch64-apple-darwin
                       OS: macos-latest
+                    - TARGET: x86_64-pc-windows-msvc
+                      OS: windows-latest
         runs-on: ${{ matrix.OS }}
         env:
             NAME: rhai-test
