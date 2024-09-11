@@ -13,5 +13,5 @@ jobs:
             - name: Get Package Version
               id: get_package_version
               run: echo "PACKAGE_VERSION=$(cargo pkgid | cut -d '#' -f 2 | cut -d ':' -f 2)" >> $GITHUB_ENV
-            - run: Built for version ${{ env.PACKAGE_VERSION }}
+            - run: echo Built for version ${{ env.PACKAGE_VERSION }}
             - run: cargo run
