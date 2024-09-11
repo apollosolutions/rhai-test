@@ -9,5 +9,10 @@ jobs:
             - uses: actions/checkout@v4
             - uses: actions-rust-lang/setup-rust-toolchain@v1
             - uses: arduino/setup-protoc@v3
-            - run: cargo build
+            - name: Get Package Version
+              id: get_package_version
+              run: echo "PACKAGE_VERSION=$(cargo pkgid | cut -d '#' -f 2 | cut -d ':' -f 2)" >> $GITHUB_ENV
+            - run: |
+                echo Building for version ${{ env.PACKAGE_VERSION }}
+                cargo build
             - run: cargo run
