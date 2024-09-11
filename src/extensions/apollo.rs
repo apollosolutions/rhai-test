@@ -15,7 +15,6 @@ use http::Uri;
 use rhai::Shared;
 use rhai::{plugin::*, Map};
 use rhai::{Engine, FnPtr};
-use serde_json::json;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -145,11 +144,11 @@ pub fn register_mocking_functions(engine: &mut Engine) {
 
 #[export_module]
 mod apollo_mocks {
-    use std::sync::Mutex;
-
-    // TODO: execution, router, subgraph
-    // TODO: Add all request/response mock types
+    use apollo_router::_private::rhai::execution;
+    use apollo_router::_private::rhai::router;
+    use apollo_router::_private::rhai::subgraph;
     use apollo_router::_private::rhai::supergraph;
+    use std::sync::Mutex;
 
     #[derive(Debug, Clone)]
     pub struct SupergraphService {
@@ -177,22 +176,94 @@ mod apollo_mocks {
         SupergraphService::new()
     }
 
+    // start
+
     #[rhai_fn()]
-    pub(crate) fn get_supergraph_service_request(
-    ) -> Shared<Mutex<std::option::Option<apollo_router::services::supergraph::Request>>> {
-        let request = supergraph::Request::builder()
-            .header("a", "b")
-            .header("a", "c")
-            .uri(Uri::from_static("http://example.com"))
+    pub(crate) fn get_router_service_request(
+    ) -> Shared<Mutex<std::option::Option<apollo_router::services::router::Request>>> {
+        let request = router::Request::fake_builder()
             .method(Method::POST)
-            .query("query { topProducts }")
-            .operation_name("Default")
             .context(Context::new())
-            .extension("foo", json!({}))
-            .variable("bar", json!({}))
             .build()
             .unwrap();
         let shared_request = Arc::new(Mutex::new(Some(request)));
         shared_request
+    }
+
+    #[rhai_fn()]
+    pub(crate) fn get_router_service_response(
+    ) -> Shared<Mutex<std::option::Option<apollo_router::services::router::Response>>> {
+        let response = router::Response::fake_builder()
+            .context(Context::new())
+            .build()
+            .unwrap();
+        let shared_response = Arc::new(Mutex::new(Some(response)));
+        shared_response
+    }
+
+    // finish
+
+    #[rhai_fn()]
+    pub(crate) fn get_supergraph_service_request(
+    ) -> Shared<Mutex<std::option::Option<apollo_router::services::supergraph::Request>>> {
+        let request = supergraph::Request::fake_builder()
+            .method(Method::POST)
+            .context(Context::new())
+            .build()
+            .unwrap();
+        let shared_request = Arc::new(Mutex::new(Some(request)));
+        shared_request
+    }
+
+    #[rhai_fn()]
+    pub(crate) fn get_supergraph_service_response(
+    ) -> Shared<Mutex<std::option::Option<apollo_router::services::supergraph::Response>>> {
+        let response = supergraph::Response::fake_builder()
+            .context(Context::new())
+            .build()
+            .unwrap();
+        let shared_response = Arc::new(Mutex::new(Some(response)));
+        shared_response
+    }
+
+    #[rhai_fn()]
+    pub(crate) fn get_execution_service_request(
+    ) -> Shared<Mutex<std::option::Option<apollo_router::services::execution::Request>>> {
+        let request = execution::Request::fake_builder()
+            .context(Context::new())
+            .build();
+        let shared_request = Arc::new(Mutex::new(Some(request)));
+        shared_request
+    }
+
+    #[rhai_fn()]
+    pub(crate) fn get_execution_service_response(
+    ) -> Shared<Mutex<std::option::Option<apollo_router::services::execution::Response>>> {
+        let response = execution::Response::fake_builder()
+            .context(Context::new())
+            .build()
+            .unwrap();
+        let shared_response = Arc::new(Mutex::new(Some(response)));
+        shared_response
+    }
+
+    #[rhai_fn()]
+    pub(crate) fn get_subgraph_service_request(
+    ) -> Shared<Mutex<std::option::Option<apollo_router::services::subgraph::Request>>> {
+        let request = subgraph::Request::fake_builder()
+            .context(Context::new())
+            .build();
+        let shared_request = Arc::new(Mutex::new(Some(request)));
+        shared_request
+    }
+
+    #[rhai_fn()]
+    pub(crate) fn get_subgraph_service_response(
+    ) -> Shared<Mutex<std::option::Option<apollo_router::services::subgraph::Response>>> {
+        let response = subgraph::Response::fake_builder()
+            .context(Context::new())
+            .build();
+        let shared_response = Arc::new(Mutex::new(Some(response)));
+        shared_response
     }
 }
