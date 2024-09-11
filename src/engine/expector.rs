@@ -9,7 +9,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use super::error_handling::{get_inner_most_error, get_stack_trace, get_stack_trace_output};
+use super::{
+    error_handling::{get_inner_most_error, get_stack_trace, get_stack_trace_output},
+    logging_container::{LoggingContainer, LOG_LEVEL},
+};
 
 #[derive(Debug, Clone)]
 pub enum ExpectedValue {
@@ -17,6 +20,7 @@ pub enum ExpectedValue {
     Bool(bool),
     Function(FnPtr),
     Error(String),
+    LogLevel(LOG_LEVEL),
 }
 
 impl ExpectedValue {
@@ -28,6 +32,8 @@ impl ExpectedValue {
             Ok(ExpectedValue::Bool(b))
         } else if let Some(f) = dynamic.clone().try_cast::<FnPtr>() {
             Ok(ExpectedValue::Function(f))
+        } else if let Some(l) = dynamic.clone().try_cast::<LOG_LEVEL>() {
+            Ok(ExpectedValue::LogLevel(l))
         } else {
             Err(format!(
                 "Unsupported type provided to expect() or it's child functions: {}",
@@ -62,6 +68,7 @@ pub struct Expector {
     test_coverage_container: Option<Arc<Mutex<TestCoverageContainer>>>,
     config: Option<Arc<Mutex<Config>>>,
     module_cache: Option<Arc<Mutex<BTreeMap<PathBuf, Arc<Module>>>>>,
+    logging_container: Option<Arc<Mutex<LoggingContainer>>>,
 }
 
 impl Expector {
@@ -78,6 +85,7 @@ impl Expector {
             test_coverage_container: None,
             config: None,
             module_cache: None,
+            logging_container: None,
         }
     }
 
@@ -87,11 +95,13 @@ impl Expector {
         test_coverage_container: Arc<Mutex<TestCoverageContainer>>,
         config: Arc<Mutex<Config>>,
         module_cache: Arc<Mutex<BTreeMap<PathBuf, Arc<Module>>>>,
+        logging_container: Arc<Mutex<LoggingContainer>>,
     ) {
         self.ast = Some(ast);
         self.test_coverage_container = Some(test_coverage_container);
         self.config = Some(config);
         self.module_cache = Some(module_cache);
+        self.logging_container = Some(logging_container);
     }
 
     pub fn not(mut self) -> Self {
@@ -274,8 +284,14 @@ impl Expector {
         let test_coverage_container = self.test_coverage_container.clone().unwrap();
         let config = self.config.clone().unwrap();
         let module_cache = self.module_cache.clone().unwrap();
+        let logging_container = self.logging_container.clone().unwrap();
 
-        let engine = create_engine(test_coverage_container, config, module_cache);
+        let engine = create_engine(
+            test_coverage_container,
+            config,
+            module_cache,
+            logging_container,
+        );
 
         let result = match &self.value {
             ExpectedValue::Function(value) => value.call::<()>(&engine, ast, ()),
@@ -300,5 +316,64 @@ impl Expector {
         }
 
         Ok((result, message, status_code))
+    }
+
+    pub fn to_log(&mut self) -> Result<(), String> {
+        let logging_container = self.logging_container.clone().unwrap();
+
+        let condition = match &self.value {
+            ExpectedValue::LogLevel(level) => {
+                logging_container.lock().unwrap().has_log(level.clone())
+            }
+            _ => {
+                return Err("Expected value passed to expect() to be a logging function".to_string())
+            }
+        };
+
+        if !condition && !self.negative {
+            let error = format!("Expected log function to be called but it was not");
+
+            Err(error)
+        } else if condition && self.negative {
+            let error = format!("Expected log function to not be called but it was");
+
+            Err(error)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn to_log_message(&mut self, pattern: &str) -> Result<(), String> {
+        let logging_container = self.logging_container.clone().unwrap();
+
+        let condition = match &self.value {
+            ExpectedValue::LogLevel(level) => logging_container
+                .lock()
+                .unwrap()
+                .has_matching_log(level.clone(), pattern),
+            _ => {
+                return Err("Expected value passed to expect() to be a logging function".to_string())
+            }
+        };
+
+        if !condition && !self.negative {
+            let logs = logging_container.lock().unwrap().get_logs();
+            let error = format!(
+                "Expected log function to be called with '{}' but it was not. \n \t\tLogs Captured:\n {}",
+                pattern,
+                logs.iter().map(|log| format!("\t\t[{}] {}", log.level.to_string(), log.message)).collect::<Vec<_>>().join("\n")
+            );
+
+            Err(error)
+        } else if condition && self.negative {
+            let error = format!(
+                "Expected log function to not be called with '{}' but it was",
+                pattern
+            );
+
+            Err(error)
+        } else {
+            Ok(())
+        }
     }
 }

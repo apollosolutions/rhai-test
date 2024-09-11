@@ -1,3 +1,4 @@
+use crate::engine::logging_container::{LoggingContainer, LOG_LEVEL};
 use apollo_router::_private::rhai as ApolloRhai;
 use apollo_router::_private::rhai::engine::SharedMut;
 use apollo_router::_private::rhai::{execution, router, subgraph, supergraph};
@@ -15,10 +16,13 @@ use rhai::Shared;
 use rhai::{plugin::*, Map};
 use rhai::{Engine, FnPtr};
 use serde_json::json;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-pub fn register_rhai_functions_and_types(engine: &mut Engine) {
+pub fn register_rhai_functions_and_types(
+    engine: &mut Engine,
+    logging_container: Arc<Mutex<LoggingContainer>>,
+) {
     let mut module = exported_module!(ApolloRhai::engine::router_plugin);
     combine_with_exported_module!(&mut module, "header", ApolloRhai::engine::router_header_map);
     combine_with_exported_module!(&mut module, "method", ApolloRhai::engine::router_method);
@@ -39,25 +43,49 @@ pub fn register_rhai_functions_and_types(engine: &mut Engine) {
         .register_static_module("env", expansion_module.into())
         .register_iterator::<HeaderMap>()
         .on_print(move |message| {
-            // TODO: Should we conditionally output based on a configured log level?
-            // TODO: Can we collect all the print-type methods and spit them out similar to how Jest does it?
             print!("{}", message);
-        })
-        .register_fn("log_trace", move |_message: Dynamic| {
-            // TODO: Should we conditionally output based on a configured log level?
-        })
-        .register_fn("log_debug", move |_message: Dynamic| {
-            // TODO: Should we conditionally output based on a configured log level?
-        })
-        .register_fn("log_info", move |_message: Dynamic| {
-            // TODO: Should we conditionally output based on a configured log level?
-        })
-        .register_fn("log_warn", move |_message: Dynamic| {
-            // TODO: Should we conditionally output based on a configured log level?
-        })
-        .register_fn("log_error", move |_message: Dynamic| {
-            // TODO: Should we conditionally output based on a configured log level?
         });
+
+    // Register logging functions for capturing logs so we can write tests against them
+    let logging_container_clone = logging_container.clone();
+    engine.register_fn("log_trace", move |message: Dynamic| {
+        logging_container_clone
+            .lock()
+            .unwrap()
+            .add_log(message.to_string(), LOG_LEVEL::TRACE);
+    });
+
+    let logging_container_clone = logging_container.clone();
+    engine.register_fn("log_debug", move |message: Dynamic| {
+        logging_container_clone
+            .lock()
+            .unwrap()
+            .add_log(message.to_string(), LOG_LEVEL::DEBUG);
+    });
+
+    let logging_container_clone = logging_container.clone();
+    engine.register_fn("log_info", move |message: Dynamic| {
+        logging_container_clone
+            .lock()
+            .unwrap()
+            .add_log(message.to_string(), LOG_LEVEL::INFO);
+    });
+
+    let logging_container_clone = logging_container.clone();
+    engine.register_fn("log_warn", move |message: Dynamic| {
+        logging_container_clone
+            .lock()
+            .unwrap()
+            .add_log(message.to_string(), LOG_LEVEL::WARN);
+    });
+
+    let logging_container_clone = logging_container.clone();
+    engine.register_fn("log_error", move |message: Dynamic| {
+        logging_container_clone
+            .lock()
+            .unwrap()
+            .add_log(message.to_string(), LOG_LEVEL::ERROR);
+    });
 
     register_rhai_router_interface!(engine, router);
     register_rhai_interface!(engine, supergraph, execution, subgraph);
@@ -89,6 +117,12 @@ pub fn register_rhai_functions_and_types(engine: &mut Engine) {
             // Intercept attempts to find "Router" variables and return our "global variables"
             // Note: Wrapped in an Arc to lighten the load of cloning.
             "Router" => Ok(Some((*shared_globals).clone().into())),
+            // Intercept references to logging methods as a variable so we can write tests to see if they were called
+            "log_trace" => Ok(Some(rhai::Dynamic::from(LOG_LEVEL::TRACE))),
+            "log_debug" => Ok(Some(rhai::Dynamic::from(LOG_LEVEL::DEBUG))),
+            "log_info" => Ok(Some(rhai::Dynamic::from(LOG_LEVEL::INFO))),
+            "log_warn" => Ok(Some(rhai::Dynamic::from(LOG_LEVEL::WARN))),
+            "log_error" => Ok(Some(rhai::Dynamic::from(LOG_LEVEL::ERROR))),
             // Return Ok(None) to continue with the normal variable resolution process.
             _ => Ok(None),
         }

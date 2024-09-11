@@ -1,7 +1,11 @@
+use std::sync::{Arc, Mutex};
+
 use colored::*;
 use rhai::{Engine, EvalAltResult, AST};
 
 use crate::engine::test_container::Test;
+
+use super::logging_container::LoggingContainer;
 
 pub struct TestSuiteResult {
     pub passed_tests: i32,
@@ -46,6 +50,7 @@ impl TestRunner {
         ast: &AST,
         path: &str,
         tests: &Vec<Test>,
+        logging_container: Arc<Mutex<LoggingContainer>>,
     ) -> TestSuiteResult {
         let mut test_run_result = TestSuiteResult::new();
         let mut test_results = Vec::<TestResult>::new();
@@ -96,6 +101,7 @@ impl TestRunner {
                         all_passing = false;
                     }
                 }
+                logging_container.lock().unwrap().reset();
             }
         }
 

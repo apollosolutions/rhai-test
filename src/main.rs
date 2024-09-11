@@ -7,6 +7,7 @@ use coverage_reporting::test_coverage_container::TestCoverageContainer;
 use engine::engine::create_engine;
 use engine::error_handling::{get_stack_trace, get_stack_trace_output};
 use engine::expector::Expector;
+use engine::logging_container::LoggingContainer;
 use engine::test_container::TestContainer;
 use engine::test_runner::TestRunner;
 use glob::glob;
@@ -63,10 +64,12 @@ fn main() {
     let test_coverage_container = Arc::new(Mutex::new(TestCoverageContainer::new()));
     let config_shared = Arc::new(Mutex::new(config));
     let module_cache = Arc::new(Mutex::new(BTreeMap::<PathBuf, Arc<Module>>::new()));
+    let logging_container = Arc::new(Mutex::new(LoggingContainer::new()));
     let engine = Arc::new(Mutex::new(create_engine(
         test_coverage_container.clone(),
         config_shared.clone(),
         module_cache.clone(),
+        logging_container.clone(),
     )));
     let shared_ast: Arc<Mutex<Option<AST>>> = Arc::new(Mutex::new(None));
 
@@ -74,6 +77,7 @@ fn main() {
     let test_coverage_container_clone = test_coverage_container.clone();
     let cloned_config_shared = config_shared.clone();
     let cloned_module_cache = module_cache.clone();
+    let cloned_logging_container = logging_container.clone();
 
     // Attach the test specific functions to the engine
     {
@@ -87,6 +91,7 @@ fn main() {
                     test_coverage_container_clone.clone(),
                     cloned_config_shared.clone(),
                     cloned_module_cache.clone(),
+                    cloned_logging_container.clone(),
                 );
                 expector
             })
@@ -99,7 +104,9 @@ fn main() {
             .register_fn(
                 "to_throw_status_and_message",
                 Expector::to_throw_status_and_message,
-            );
+            )
+            .register_fn("to_log", Expector::to_log)
+            .register_fn("to_log_message", Expector::to_log_message);
     }
 
     // Now run each test file
@@ -107,6 +114,7 @@ fn main() {
         let test_file_content = fs::read_to_string(path).expect("Unable to read rhai test file");
 
         let cloned_container = test_container.clone();
+        let cloned_logging_container = logging_container.clone();
         let cloned_path = path.clone();
 
         let test = move |test_name: &str, func: FnPtr| {
@@ -150,6 +158,7 @@ fn main() {
                             &ast_arc.lock().unwrap(),
                             &path,
                             &tests,
+                            cloned_logging_container.clone(),
                         );
 
                         let mut container = test_container.lock().unwrap();

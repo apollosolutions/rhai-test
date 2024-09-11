@@ -14,10 +14,13 @@ use crate::{
 };
 use rhai::{module_resolvers::FileModuleResolver, Engine, Module};
 
+use super::logging_container::LoggingContainer;
+
 pub fn create_engine(
     test_coverage_container: Arc<Mutex<TestCoverageContainer>>,
     config: Arc<Mutex<Config>>,
     module_cache: Arc<Mutex<BTreeMap<PathBuf, Arc<Module>>>>,
+    logging_container: Arc<Mutex<LoggingContainer>>,
 ) -> Engine {
     let mut engine = Engine::new();
     let coverage = config.lock().unwrap().coverage;
@@ -35,7 +38,7 @@ pub fn create_engine(
         engine.set_module_resolver(resolver);
     }
 
-    extensions::apollo::register_rhai_functions_and_types(&mut engine);
+    extensions::apollo::register_rhai_functions_and_types(&mut engine, logging_container);
     extensions::helpers::register_rhai_functions_and_types(&mut engine);
     extensions::apollo::register_mocking_functions(&mut engine);
     extensions::file_coverage::register_rhai_functions_and_types(
