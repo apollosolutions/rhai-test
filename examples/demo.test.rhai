@@ -9,5 +9,5 @@ test("test 1", ||{
 
     try {execute.call();} catch {}
 
-    expect(log_error).to_log_message("Noo client headers set");
+    expect(log_error).to_log_message("No client headers set");
 });

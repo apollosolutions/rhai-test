@@ -1,4 +1,4 @@
-use crate::engine::logging_container::{LoggingContainer, LOG_LEVEL};
+use crate::engine::logging_container::{LogLevel, LoggingContainer};
 use apollo_router::_private::rhai as ApolloRhai;
 use apollo_router::_private::rhai::engine::SharedMut;
 use apollo_router::_private::rhai::{execution, router, subgraph, supergraph};
@@ -52,7 +52,7 @@ pub fn register_rhai_functions_and_types(
         logging_container_clone
             .lock()
             .unwrap()
-            .add_log(message.to_string(), LOG_LEVEL::TRACE);
+            .add_log(message.to_string(), LogLevel::TRACE);
     });
 
     let logging_container_clone = logging_container.clone();
@@ -60,7 +60,7 @@ pub fn register_rhai_functions_and_types(
         logging_container_clone
             .lock()
             .unwrap()
-            .add_log(message.to_string(), LOG_LEVEL::DEBUG);
+            .add_log(message.to_string(), LogLevel::DEBUG);
     });
 
     let logging_container_clone = logging_container.clone();
@@ -68,7 +68,7 @@ pub fn register_rhai_functions_and_types(
         logging_container_clone
             .lock()
             .unwrap()
-            .add_log(message.to_string(), LOG_LEVEL::INFO);
+            .add_log(message.to_string(), LogLevel::INFO);
     });
 
     let logging_container_clone = logging_container.clone();
@@ -76,7 +76,7 @@ pub fn register_rhai_functions_and_types(
         logging_container_clone
             .lock()
             .unwrap()
-            .add_log(message.to_string(), LOG_LEVEL::WARN);
+            .add_log(message.to_string(), LogLevel::WARN);
     });
 
     let logging_container_clone = logging_container.clone();
@@ -84,7 +84,7 @@ pub fn register_rhai_functions_and_types(
         logging_container_clone
             .lock()
             .unwrap()
-            .add_log(message.to_string(), LOG_LEVEL::ERROR);
+            .add_log(message.to_string(), LogLevel::ERROR);
     });
 
     register_rhai_router_interface!(engine, router);
@@ -118,11 +118,11 @@ pub fn register_rhai_functions_and_types(
             // Note: Wrapped in an Arc to lighten the load of cloning.
             "Router" => Ok(Some((*shared_globals).clone().into())),
             // Intercept references to logging methods as a variable so we can write tests to see if they were called
-            "log_trace" => Ok(Some(rhai::Dynamic::from(LOG_LEVEL::TRACE))),
-            "log_debug" => Ok(Some(rhai::Dynamic::from(LOG_LEVEL::DEBUG))),
-            "log_info" => Ok(Some(rhai::Dynamic::from(LOG_LEVEL::INFO))),
-            "log_warn" => Ok(Some(rhai::Dynamic::from(LOG_LEVEL::WARN))),
-            "log_error" => Ok(Some(rhai::Dynamic::from(LOG_LEVEL::ERROR))),
+            "log_trace" => Ok(Some(rhai::Dynamic::from(LogLevel::TRACE))),
+            "log_debug" => Ok(Some(rhai::Dynamic::from(LogLevel::DEBUG))),
+            "log_info" => Ok(Some(rhai::Dynamic::from(LogLevel::INFO))),
+            "log_warn" => Ok(Some(rhai::Dynamic::from(LogLevel::WARN))),
+            "log_error" => Ok(Some(rhai::Dynamic::from(LogLevel::ERROR))),
             // Return Ok(None) to continue with the normal variable resolution process.
             _ => Ok(None),
         }

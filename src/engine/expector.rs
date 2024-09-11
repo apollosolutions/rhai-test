@@ -11,7 +11,7 @@ use std::{
 
 use super::{
     error_handling::{get_inner_most_error, get_stack_trace, get_stack_trace_output},
-    logging_container::{LoggingContainer, LOG_LEVEL},
+    logging_container::{LogLevel, LoggingContainer},
 };
 
 #[derive(Debug, Clone)]
@@ -20,7 +20,7 @@ pub enum ExpectedValue {
     Bool(bool),
     Function(FnPtr),
     Error(String),
-    LogLevel(LOG_LEVEL),
+    LogLevel(LogLevel),
 }
 
 impl ExpectedValue {
@@ -32,7 +32,7 @@ impl ExpectedValue {
             Ok(ExpectedValue::Bool(b))
         } else if let Some(f) = dynamic.clone().try_cast::<FnPtr>() {
             Ok(ExpectedValue::Function(f))
-        } else if let Some(l) = dynamic.clone().try_cast::<LOG_LEVEL>() {
+        } else if let Some(l) = dynamic.clone().try_cast::<LogLevel>() {
             Ok(ExpectedValue::LogLevel(l))
         } else {
             Err(format!(

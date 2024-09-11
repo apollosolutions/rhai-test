@@ -1,7 +1,7 @@
 use regex::Regex;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum LOG_LEVEL {
+pub enum LogLevel {
     TRACE,
     DEBUG,
     INFO,
@@ -9,14 +9,14 @@ pub enum LOG_LEVEL {
     ERROR,
 }
 
-impl ToString for LOG_LEVEL {
+impl ToString for LogLevel {
     fn to_string(&self) -> String {
         match self {
-            LOG_LEVEL::TRACE => "trace".to_string(),
-            LOG_LEVEL::DEBUG => "debug".to_string(),
-            LOG_LEVEL::INFO => "info".to_string(),
-            LOG_LEVEL::WARN => "warn".to_string(),
-            LOG_LEVEL::ERROR => "error".to_string(),
+            LogLevel::TRACE => "trace".to_string(),
+            LogLevel::DEBUG => "debug".to_string(),
+            LogLevel::INFO => "info".to_string(),
+            LogLevel::WARN => "warn".to_string(),
+            LogLevel::ERROR => "error".to_string(),
         }
     }
 }
@@ -24,7 +24,7 @@ impl ToString for LOG_LEVEL {
 #[derive(Debug, Clone)]
 pub struct CapturedLog {
     pub message: String,
-    pub level: LOG_LEVEL,
+    pub level: LogLevel,
 }
 
 #[derive(Debug, Clone)]
@@ -37,15 +37,15 @@ impl LoggingContainer {
         Self { logs: Vec::new() }
     }
 
-    pub fn add_log(&mut self, message: String, level: LOG_LEVEL) {
+    pub fn add_log(&mut self, message: String, level: LogLevel) {
         self.logs.push(CapturedLog { message, level });
     }
 
-    pub fn has_log(&mut self, level: LOG_LEVEL) -> bool {
+    pub fn has_log(&mut self, level: LogLevel) -> bool {
         self.logs.iter().any(|log| log.level == level)
     }
 
-    pub fn has_matching_log(&mut self, level: LOG_LEVEL, pattern: &str) -> bool {
+    pub fn has_matching_log(&mut self, level: LogLevel, pattern: &str) -> bool {
         let regex = Regex::new(pattern).unwrap();
         self.logs
             .iter()
