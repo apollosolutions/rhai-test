@@ -8,7 +8,19 @@ defaults:
     shell: bash
 
 jobs:
+    test:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions-rust-lang/setup-rust-toolchain@v1
+        - uses: arduino/setup-protoc@v3
+          with:
+            repo-token: ${{ secrets.GITHUB_TOKEN }}
+        - name: Running examples
+          run: |
+              cargo run
     build-artifacts:
+        needs: [test]
         strategy:
             matrix:
                 include:
@@ -27,18 +39,14 @@ jobs:
             - uses: arduino/setup-protoc@v3
               with:
                 repo-token: ${{ secrets.GITHUB_TOKEN }}
-            #- uses: Swatinem/rust-cache@v2.7.3
             - name: Build for current target
               run: | 
                 cargo build --release --target ${{ matrix.TARGET }}
             - name: Get Package Version
               run: echo "PACKAGE_VERSION=$(cargo pkgid | cut -d '#' -f 2 | cut -d ':' -f 2)" >> $GITHUB_ENV
-            - name: Running examples
-              run: | 
-                echo Built for version ${{ env.PACKAGE_VERSION }}
-                cargo run
             - name: Compress
               run: |
+                echo Built for version ${{ env.PACKAGE_VERSION }}
                 mkdir -p ./artifacts
                 # windows is the only OS using a different convention for executable file name
                 if [[ ${{ matrix.OS }} =~ ^windows.*$ ]]; then
