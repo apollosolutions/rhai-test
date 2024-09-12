@@ -11,6 +11,12 @@ extra_changelog_sections = [
 [[package.assets]]
 path = "artifacts/rhai-test-aarch64-apple-darwin.tgz"
 
+[[package.assets]]
+path = "artifacts/rhai-test-x86_64-unknown-linux-gnu.tgz"
+
+[[package.assets]]
+path = "artifacts/rhai-test-x86_64-pc-windows-msvc.tgz"
+
 [[workflows]]
 name = "prepare-release"
 
