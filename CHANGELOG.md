@@ -1,3 +1,9 @@
+## 0.1.1 (2024-09-12)
+
+### 🚀 Features
+
+- Add README documentation and add back in other platform targets
+
 ## 0.2.6 (2024-09-12)
 
 ### 🚀 Features
