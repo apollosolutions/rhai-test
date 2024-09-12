@@ -77,11 +77,11 @@ jobs:
             
             - name: Copy Unix Artifact
               if: ${{ matrix.os != 'windows-latest' }}
-              run: cp target/${{ matrix.target }}/release/test ${{ env.archive_name }}
+              run: cp target/${{ matrix.target }}/release/${{ env.archive_name }} ${{ env.archive_name }}
       
             - name: Copy Windows Artifact
               if: ${{ matrix.os == 'windows-latest' }}
-              run: cp target/${{ matrix.target }}/release/test.exe ${{ env.archive_name }}
+              run: cp target/${{ matrix.target }}/release/${{ env.archive_name }}.exe ${{ env.archive_name }}
             
             - name: Create Tar Archive
               run: tar -czf ${{ env.archive_name }}.tgz ${{ env.archive_name }}
