@@ -1,4 +1,4 @@
-name: Test Build
+name: Build and Release
 
 on: workflow_dispatch
 
@@ -8,7 +8,7 @@ defaults:
     shell: bash
 
 jobs:
-    build:
+    build-artifacts:
         strategy:
             matrix:
                 include:
@@ -27,6 +27,7 @@ jobs:
             - uses: arduino/setup-protoc@v3
               with:
                 repo-token: ${{ secrets.GITHUB_TOKEN }}
+            - uses: Swatinem/rust-cache@v2.7.3
             - name: Build for current target
               run: | 
                 cargo build --release --target ${{ matrix.TARGET }}
