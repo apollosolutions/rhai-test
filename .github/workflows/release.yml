@@ -107,7 +107,9 @@ jobs:
             path: artifacts
             merge-multiple: true
         - run: |
+            cd artifacts
             ls
+            cd ..
         - name: Install the latest Knope
           uses: knope-dev/action@v2.1.0
           with:
