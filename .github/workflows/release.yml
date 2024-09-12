@@ -90,7 +90,7 @@ jobs:
               uses: actions/upload-artifact@v4.4.0
               with:
                 name: ${{ matrix.target }}
-                path: ${{ env.archive_name }}.tgz
+                path: ${{ env.archive_name }}-${{ needs.prepare-release.outputs.sha }}-${{ matrix.target }}.tgz
                 if-no-files-found: error
     release:
       needs: [build-artifacts, prepare-release]
@@ -104,8 +104,6 @@ jobs:
             path: artifacts
             merge-multiple: true
         - run: |
-            ls
-            cd artifacts
             ls
         - name: Install the latest Knope
           uses: knope-dev/action@v2.1.0
