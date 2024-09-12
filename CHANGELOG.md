@@ -1,3 +1,9 @@
+## 0.2.6 (2024-09-12)
+
+### 🚀 Features
+
+- Updating changelog section config
+
 ## 0.2.5 (2024-09-12)
 
 ### Features
