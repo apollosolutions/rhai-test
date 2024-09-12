@@ -43,7 +43,7 @@ jobs:
         - name: Store commit
           id: commit
           run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-    
+              
     build-artifacts:
         needs: prepare-release
         strategy:
@@ -84,13 +84,16 @@ jobs:
               run: cp target/${{ matrix.target }}/release/${{ env.archive_name }}.exe ${{ env.archive_name }}
             
             - name: Create Tar Archive
-              run: tar -czf ${{ env.archive_name }}.tgz ${{ env.archive_name }}
+              run: tar -czf ${{ env.archive_name }}-${{ env.PACKAGE_VERSION }}-${{ matrix.target }}.tgz ${{ env.archive_name }}
       
+            - name: Get Package Version
+              run: echo "PACKAGE_VERSION=$(cargo pkgid | cut -d '#' -f 2 | cut -d ':' -f 2)" >> $GITHUB_ENV
+
             - name: Upload Artifact
               uses: actions/upload-artifact@v4.4.0
               with:
                 name: ${{ matrix.target }}
-                path: ${{ env.archive_name }}-${{ needs.prepare-release.outputs.sha }}-${{ matrix.target }}.tgz
+                path: ${{ env.archive_name }}-${{ env.PACKAGE_VERSION }}-${{ matrix.target }}.tgz
                 if-no-files-found: error
     release:
       needs: [build-artifacts, prepare-release]
