@@ -1,3 +1,9 @@
+## 0.1.2 (2024-09-12)
+
+### 🐛 Fixes
+
+- Fix release to include all artifacts
+
 ## 0.1.1 (2024-09-12)
 
 ### 🚀 Features
