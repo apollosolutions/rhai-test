@@ -1,3 +1,9 @@
+## 0.2.5 (2024-09-12)
+
+### Features
+
+- Take out version number from artifact generation
+
 ## 0.2.4 (2024-09-12)
 
 ### Fixes
