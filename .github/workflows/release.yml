@@ -82,18 +82,15 @@ jobs:
             - name: Copy Windows Artifact
               if: ${{ matrix.os == 'windows-latest' }}
               run: cp target/${{ matrix.target }}/release/${{ env.archive_name }}.exe ${{ env.archive_name }}
-
-            - name: Get Package Version
-              run: echo "PACKAGE_VERSION=$(cargo pkgid | cut -d '#' -f 2 | cut -d ':' -f 2)" >> $GITHUB_ENV
             
             - name: Create Tar Archive
-              run: tar -czf ${{ env.archive_name }}-${{ env.PACKAGE_VERSION }}-${{ matrix.target }}.tgz ${{ env.archive_name }}
+              run: tar -czf ${{ env.archive_name }}-${{ matrix.target }}.tgz ${{ env.archive_name }}
 
             - name: Upload Artifact
               uses: actions/upload-artifact@v4.4.0
               with:
                 name: ${{ matrix.target }}
-                path: ${{ env.archive_name }}-${{ env.PACKAGE_VERSION }}-${{ matrix.target }}.tgz
+                path: ${{ env.archive_name }}-${{ matrix.target }}.tgz
                 if-no-files-found: error
     release:
       needs: [build-artifacts, prepare-release]

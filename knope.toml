@@ -3,7 +3,7 @@ versioned_files = ["Cargo.toml"]
 changelog = "CHANGELOG.md"
 
 [[package.assets]]
-path = "artifacts/rhai-test-Version-aarch64-apple-darwin.tgz"
+path = "artifacts/rhai-test-aarch64-apple-darwin.tgz"
 
 [[workflows]]
 name = "prepare-release"
