@@ -1,6 +1,12 @@
 [package]
 versioned_files = ["Cargo.toml"]
 changelog = "CHANGELOG.md"
+extra_changelog_sections = [
+    { types = ["major"], name = "❗️Breaking ❗" },
+    { types = ["minor"], name = "🚀 Features" },
+    { types = ["patch"], name = "🐛 Fixes" },
+    { footers = ["Changelog-Note"], name = "📝 Notes" },
+]
 
 [[package.assets]]
 path = "artifacts/rhai-test-aarch64-apple-darwin.tgz"
