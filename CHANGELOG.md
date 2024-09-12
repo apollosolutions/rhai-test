@@ -1,3 +1,9 @@
+## 0.2.3 (2024-09-12)
+
+### Features
+
+- version number parse was too late
+
 ## 0.2.2 (2024-09-12)
 
 ### Fixes
