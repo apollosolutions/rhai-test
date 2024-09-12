@@ -11,7 +11,7 @@ jobs:
     test:
       runs-on: ubuntu-latest
       steps:
-        - uses: actions/checkout@v4
+        - uses: actions/checkout@v4.1.7
         - uses: actions-rust-lang/setup-rust-toolchain@v1
         - uses: arduino/setup-protoc@v3
           with:
@@ -19,46 +19,94 @@ jobs:
         - name: Running examples
           run: |
               cargo run
+    
+    prepare-release:
+      needs: test
+      runs-on: ubuntu-latest
+      outputs:
+        sha: ${{ steps.commit.outputs.sha }}
+      steps:
+        - uses: actions/checkout@v4.1.7
+          name: Fetch entire history (for conventional commits)
+          with:
+            fetch-depth: 0
+        - name: Configure Git
+          run: |
+            git config --global user.name GitHub Actions
+            git config user.email github-actions@github.com
+        - name: Install Knope
+          uses: knope-dev/action@v2.1.0
+          with:
+            version: 0.18.0
+        - run: knope prepare-release --verbose
+          name: Update versioned files and changelog
+        - name: Store commit
+          id: commit
+          run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+    
     build-artifacts:
-        needs: [test]
+        needs: prepare-release
         strategy:
             matrix:
                 include:
-                    #- TARGET: x86_64-unknown-linux-gnu # tested in a debian container on a mac
-                    #  OS: ubuntu-latest
-                    - TARGET: aarch64-apple-darwin
-                      OS: macos-latest
-                    #- TARGET: x86_64-pc-windows-msvc
-                    #  OS: windows-latest
-        runs-on: ${{ matrix.OS }}
+                    #- target: x86_64-unknown-linux-gnu # tested in a debian container on a mac
+                    #  os: ubuntu-latest
+                    - target: aarch64-apple-darwin
+                      os: macos-latest
+                    #- target: x86_64-pc-windows-msvc
+                    #  os: windows-latest
+        runs-on: ${{ matrix.os }}
         env:
-            NAME: rhai-test
+            archive_name: rhai-test
         steps:
             - uses: actions/checkout@v4
+              with:
+                ref: ${{ needs.prepare-release.outputs.sha }}
+            
             - uses: actions-rust-lang/setup-rust-toolchain@v1
+            
             - uses: arduino/setup-protoc@v3
               with:
                 repo-token: ${{ secrets.GITHUB_TOKEN }}
-            - name: Build for current target
-              run: | 
-                cargo build --release --target ${{ matrix.TARGET }}
-            - name: Get Package Version
-              run: echo "PACKAGE_VERSION=$(cargo pkgid | cut -d '#' -f 2 | cut -d ':' -f 2)" >> $GITHUB_ENV
-            - name: Compress
-              run: |
-                echo Built for version ${{ env.PACKAGE_VERSION }}
-                mkdir -p ./artifacts
-                # windows is the only OS using a different convention for executable file name
-                if [[ ${{ matrix.OS }} =~ ^windows.*$ ]]; then
-                    EXEC=${{ env.NAME }}.exe
-                else
-                    EXEC=${{ env.NAME }}
-                fi
-                mv ./target/${{ matrix.TARGET }}/release/$EXEC ./$EXEC
-                tar -czf ./artifacts/${{ env.NAME }}-${{ matrix.TARGET }}-${{ env.PACKAGE_VERSION }}.tar.gz $EXEC
-            - name: Archive artifact
-              uses: actions/upload-artifact@v2
+            
+            - name: Build
+              run: cargo build --release --target ${{ matrix.target }}
+            
+            - name: Create Archive Folder
+              run: mkdir ${{ env.archive_name }}
+            
+            - name: Copy Unix Artifact
+              if: ${{ matrix.os != 'windows-latest' }}
+              run: cp target/${{ matrix.target }}/release/test ${{ env.archive_name }}
+      
+            - name: Copy Windows Artifact
+              if: ${{ matrix.os == 'windows-latest' }}
+              run: cp target/${{ matrix.target }}/release/test.exe ${{ env.archive_name }}
+            
+            - name: Create Tar Archive
+              run: tar -czf ${{ env.archive_name }}.tgz ${{ env.archive_name }}
+      
+            - name: Upload Artifact
+              uses: actions/upload-artifact@v4.4.0
               with:
-                name: result
-                path: |
-                    ./artifacts
+                name: ${{ matrix.target }}
+                path: ${{ env.archive_name }}.tgz
+                if-no-files-found: error
+    release:
+      needs: [build-artifacts, prepare-release]
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4.1.7
+          with:
+            ref: ${{ needs.prepare-release.outputs.sha }}
+        - uses: actions/download-artifact@v4.1.8
+          with:
+            path: artifacts
+            merge-multiple: true
+        - name: Install the latest Knope
+          uses: knope-dev/action@v2.1.0
+          with:
+            version: 0.11.0
+        - run: knope release --verbose
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
