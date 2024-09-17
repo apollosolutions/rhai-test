@@ -18,7 +18,9 @@ use super::{
 pub enum ExpectedValue {
     String(String),
     Bool(bool),
+    Int(i64),
     Function(FnPtr),
+    Nothing(()),
     Error(String),
     LogLevel(LogLevel),
 }
@@ -30,8 +32,12 @@ impl ExpectedValue {
             Ok(ExpectedValue::String(s.to_string()))
         } else if let Some(b) = dynamic.clone().try_cast::<bool>() {
             Ok(ExpectedValue::Bool(b))
+        } else if let Some(i) = dynamic.clone().try_cast::<i64>() {
+            Ok(ExpectedValue::Int(i))
         } else if let Some(f) = dynamic.clone().try_cast::<FnPtr>() {
             Ok(ExpectedValue::Function(f))
+        } else if let Some(n) = dynamic.clone().try_cast::<()>() {
+            Ok(ExpectedValue::Nothing(n))
         } else if let Some(l) = dynamic.clone().try_cast::<LogLevel>() {
             Ok(ExpectedValue::LogLevel(l))
         } else {
@@ -49,9 +55,11 @@ impl PartialEq for ExpectedValue {
         match (self, other) {
             (ExpectedValue::String(s1), ExpectedValue::String(s2)) => s1 == s2,
             (ExpectedValue::Bool(b1), ExpectedValue::Bool(b2)) => b1 == b2,
+            (ExpectedValue::Int(i1), ExpectedValue::Int(i2)) => i1 == i2,
             (ExpectedValue::Function(f1), ExpectedValue::Function(f2)) => {
                 f1.to_string() == f2.to_string()
             }
+            (ExpectedValue::Nothing(n1), ExpectedValue::Nothing(n2)) => n1 == n2,
             _ => false,
         }
     }
