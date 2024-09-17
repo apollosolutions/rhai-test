@@ -1,3 +1,14 @@
+## 0.2.0 (2024-09-17)
+
+### ❗️Breaking ❗
+
+- Modify get_subgraph_service_request to require a supergraph_request so that headers can be set on those kinds of tests
+
+### 🚀 Features
+
+- Add support for int and () types for expectors
+- Add to_exist() expecter function
+
 ## 0.1.2 (2024-09-12)
 
 ### 🐛 Fixes
