@@ -249,9 +249,20 @@ mod apollo_mocks {
 
     #[rhai_fn()]
     pub(crate) fn get_subgraph_service_request(
+        supergraph_request: Arc<Mutex<Option<apollo_router::services::supergraph::Request>>>,
     ) -> Shared<Mutex<std::option::Option<apollo_router::services::subgraph::Request>>> {
+        let request_guard = supergraph_request.lock().unwrap();
+        let raw_supergraph_request = &request_guard.as_ref().unwrap().supergraph_request;
+        let mut new_supergraph_request = http::Request::builder()
+            .uri(raw_supergraph_request.uri().clone())
+            .method(raw_supergraph_request.method().clone())
+            .body(raw_supergraph_request.body().clone())
+            .unwrap();
+        *new_supergraph_request.headers_mut() = raw_supergraph_request.headers().clone();
+
         let request = subgraph::Request::fake_builder()
             .context(Context::new())
+            .supergraph_request(Arc::new(new_supergraph_request))
             .build();
         let shared_request = Arc::new(Mutex::new(Some(request)));
         shared_request

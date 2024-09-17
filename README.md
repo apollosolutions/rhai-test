@@ -24,6 +24,7 @@ This is an experimental CLI tool for running unit tests against your Router rhai
     - [`to_log_message(String)`](#to_log_messagestring)
   - [Recipes](#recipes)
     - [Checking for error logging when a function throws an error](#checking-for-error-logging-when-a-function-throws-an-error)
+    - [Testing against subgraph request](#testing-against-subgraph-request)
 
 ## Example
 
@@ -220,7 +221,8 @@ let supergraph_request = apollo_mocks::get_supergraph_service_request();
 let supergraph_response = apollo_mocks::get_supergraph_service_response();
 let execution_request = apollo_mocks::get_execution_service_request();
 let execution_response = apollo_mocks::get_execution_service_response();
-let subgraph_request = apollo_mocks::get_subgraph_service_request();
+// Note that you need to pass a supergraph_request to create a subgraph_request
+let subgraph_request = apollo_mocks::get_subgraph_service_request(supergraph_request);
 let subgraph_response = apollo_mocks::get_subgraph_service_response();
 ```
 
@@ -472,3 +474,21 @@ test("Should log an error when version header is not provided", ||{
     expect(log_error).to_log_message("No client headers set");
 });
 ```
+
+### Testing against subgraph request
+
+In order to create a subgraph request mock, you will need to create a supergraph request mock. This will allow you to modify headers for testing these types of requests. If you try to modify the headers on a `subgraph_request`, you will receive an error.
+
+```
+test("Should be able to modify subgraph requestsvia supergraph request", ||{
+    let supergraph_request = apollo_mocks::get_supergraph_service_request();
+    supergraph_request.headers["assetid"] = "abc123";
+    let subgraph_request = apollo_mocks::get_subgraph_service_request(supergraph_request);
+
+    import "headers" as headers;
+    headers::rename_header(subgraph_request);
+
+    expect(subgraph_request.subgraph.headers["original_assetid"]).to_be("abc123");
+});
+```
+
