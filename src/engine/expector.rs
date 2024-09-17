@@ -143,6 +143,30 @@ impl Expector {
         }
     }
 
+    pub fn to_exist(&mut self) -> Result<(), String> {
+        if let ExpectedValue::Error(err_msg) = &self.value {
+            return Err(err_msg.clone());
+        }
+
+        let condition: bool = if let ExpectedValue::Nothing(_) = &self.value {
+            false
+        } else {
+            true
+        };
+
+        if !condition && !self.negative {
+            let error = format!("Expected value {:?} to exist", self.value);
+
+            Err(error)
+        } else if condition && self.negative {
+            let error = format!("Expected value {:?} to not exist", self.value);
+
+            Err(error)
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn to_match(&mut self, pattern: &str) -> Result<(), String> {
         if let ExpectedValue::Error(err_msg) = &self.value {
             return Err(err_msg.clone());

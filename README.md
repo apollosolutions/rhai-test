@@ -15,6 +15,7 @@ This is an experimental CLI tool for running unit tests against your Router rhai
   - [Expector](#expector)
     - [`to_be(String)`](#to_bestring)
     - [`to_match(String)`](#to_matchstring)
+    - [`to_exist()`](#to_exist)
     - [`not()`](#not)
     - [`to_throw()`](#to_throw)
     - [`to_throw_message(String)`](#to_throw_messagestring)
@@ -329,6 +330,16 @@ test("Should generate a uuid", ||{
     let uuid = uuid_v4();
 
     expect(uuid).to_match(".{8}-.{4}-.{4}-.{4}-.{12}");
+});
+```
+
+### `to_exist()`
+
+Checks if a value exists
+
+```rhai
+test("Should encode text to base64", ||{
+    expect("a").to_exist();
 });
 ```
 

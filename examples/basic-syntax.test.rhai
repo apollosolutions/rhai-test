@@ -25,3 +25,11 @@ test("Should be able to negative compare ints", ||{
 test("Should be able to compare nothing", ||{
     expect(()).to_be(());
 });
+
+test("Should be able to check that something exists", ||{
+    expect("a").to_exist();
+});
+
+test("Should be able to check that something does not exist", ||{
+    expect(()).not().to_exist();
+});
