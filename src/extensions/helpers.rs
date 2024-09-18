@@ -2,6 +2,7 @@ use rhai::plugin::*;
 use rhai::Engine;
 use std::env;
 
+/// Registers the test_helpers interface
 pub fn register_rhai_functions_and_types(engine: &mut Engine) {
     let test_helpers_module = exported_module!(test_helpers);
 

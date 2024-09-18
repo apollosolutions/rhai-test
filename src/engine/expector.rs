@@ -14,6 +14,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+/// Represents all the different types of values that can be passed to an expect() or one of it's functions
 #[derive(Debug, Clone)]
 pub enum ExpectedValue {
     String(String),
@@ -25,8 +26,9 @@ pub enum ExpectedValue {
     LogLevel(LogLevel),
 }
 
+/// This defines how to parse/cast the value into the enum or provide an error that it's an unsupported type
+/// When adding new types, make sure to also update the PartialEq definition below so we know how to compare values
 impl ExpectedValue {
-    // TODO: Support more types, make sure to add to the equal check below
     pub fn from_dynamic(dynamic: &Dynamic) -> Result<Self, String> {
         if let Some(s) = dynamic.clone().try_cast::<ImmutableString>() {
             Ok(ExpectedValue::String(s.to_string()))
@@ -50,6 +52,7 @@ impl ExpectedValue {
     }
 }
 
+/// Defines how to compare these enum values to each other
 impl PartialEq for ExpectedValue {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -81,6 +84,7 @@ pub struct Expector {
 }
 
 impl Expector {
+    /// We're going to attempt to parse a provided value into an expector. If it's an invalid value, it'll be given the Error enum type that we'll handle later in the expector functions.
     pub fn new(value: Dynamic) -> Self {
         let value_from_dynamic = match ExpectedValue::from_dynamic(&value) {
             Ok(val) => val,
@@ -99,6 +103,7 @@ impl Expector {
         }
     }
 
+    /// This attaches all the engine components that the expector needs to evaluate
     pub fn attach(
         &mut self,
         ast: Arc<Mutex<Option<AST>>>,
@@ -116,11 +121,13 @@ impl Expector {
         self.test_container = Some(test_container);
     }
 
+    /// Inverses the check
     pub fn not(mut self) -> Self {
         self.negative = true;
         self
     }
 
+    /// Checks if two values are equal
     pub fn to_be(&mut self, expected: Dynamic) {
         if let ExpectedValue::Error(err_msg) = &self.value {
             self.test_container
@@ -179,6 +186,7 @@ impl Expector {
         }
     }
 
+    /// Checks if a value exists (effectively, it's not ())
     pub fn to_exist(&mut self) {
         if let ExpectedValue::Error(err_msg) = &self.value {
             self.test_container
@@ -224,6 +232,7 @@ impl Expector {
         }
     }
 
+    /// Checks if a provided string matches a provided regular expression
     pub fn to_match(&mut self, pattern: &str) {
         if let ExpectedValue::Error(err_msg) = &self.value {
             self.test_container
@@ -286,6 +295,7 @@ impl Expector {
         }
     }
 
+    /// Checks if a provided function pointer, when executed, throws a specified status code and/or message
     pub fn to_throw_status_and_message(
         &mut self,
         status_code_to_match: i64,
@@ -295,6 +305,7 @@ impl Expector {
         self.to_throw_message(message_to_match);
     }
 
+    /// Checks if a provided function pointer, when executed, throws a specified status code
     pub fn to_throw_status(&mut self, status_code_to_match: i64) {
         if let ExpectedValue::Error(err_msg) = &self.value {
             self.test_container
@@ -363,6 +374,7 @@ impl Expector {
         }
     }
 
+    /// Checks if a provided function pointer, when executed, throws a specified message
     pub fn to_throw_message(&mut self, message_to_match: &str) {
         if let ExpectedValue::Error(err_msg) = &self.value {
             self.test_container
@@ -446,6 +458,7 @@ impl Expector {
         }
     }
 
+    /// Checks if a provided function pointer, when executed, throws an error
     pub fn to_throw(&mut self) {
         if let ExpectedValue::Error(err_msg) = &self.value {
             self.test_container
@@ -501,6 +514,7 @@ impl Expector {
         }
     }
 
+    /// Executes a function pointer and parses any thrown errors. Used internally by to_throw* functions.
     fn run_throw_function(
         &mut self,
     ) -> Result<(Result<(), Box<EvalAltResult>>, String, String), String> {
@@ -511,6 +525,8 @@ impl Expector {
         let module_cache = self.module_cache.clone().unwrap();
         let logging_container = self.logging_container.clone().unwrap();
 
+        // Why are we re-creating an engine here? Because the engine is already locked when this function is run, we end up in a thread-lock situation if we try to also use the engine here.
+        // So the (unfortunate) solution is to re-create the engine
         let engine = create_engine(
             test_coverage_container,
             config,
@@ -543,6 +559,7 @@ impl Expector {
         Ok((result, message, status_code))
     }
 
+    /// Checks if a given log function has been called during the execution of the current test
     pub fn to_log(&mut self) {
         let logging_container = self.logging_container.clone().unwrap();
 
@@ -591,6 +608,8 @@ impl Expector {
         }
     }
 
+    /// Checks if a given log function has been called with a particular message (matching a pattern) during the execution of the current test
+    /// If this fails, it outputs the logs that it did see to help the user debug
     pub fn to_log_message(&mut self, pattern: &str) {
         let logging_container = self.logging_container.clone().unwrap();
 

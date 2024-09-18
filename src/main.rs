@@ -41,6 +41,7 @@ pub struct Config {
 fn main() {
     let start_time = Instant::now();
 
+    // Load config file based on arguments (or default)
     let args = Args::parse();
     let config_string = match fs::read_to_string(args.config.clone()) {
         Ok(file_content) => file_content,
@@ -54,6 +55,7 @@ fn main() {
         }
     };
 
+    // Parse config file
     let config: Config = match serde_json::from_str(&config_string) {
         Ok(config_object) => config_object,
         Err(error) => {
@@ -68,6 +70,7 @@ fn main() {
 
     let mut test_files: Vec<String> = Vec::new();
 
+    // Discover any test files that match the provided glob pattern(s)
     for path in &config.test_match {
         for entry in
             glob(path).expect("Failed to read a glob pattern for config file 'testMatch' value")
@@ -79,6 +82,7 @@ fn main() {
         }
     }
 
+    // Create all our core engine objects
     let test_container = Arc::new(Mutex::new(TestContainer::new()));
     let test_coverage_container = Arc::new(Mutex::new(TestCoverageContainer::new()));
     let config_shared = Arc::new(Mutex::new(config));
@@ -92,6 +96,7 @@ fn main() {
     )));
     let shared_ast: Arc<Mutex<Option<AST>>> = Arc::new(Mutex::new(None));
 
+    // We're cloning stuff here so that it can be moved into the expect()` closure below
     let cloned_shared_ast = shared_ast.clone();
     let test_coverage_container_clone = test_coverage_container.clone();
     let cloned_config_shared = config_shared.clone();
@@ -99,7 +104,7 @@ fn main() {
     let cloned_logging_container = logging_container.clone();
     let cloned_container = test_container.clone();
 
-    // Attach the test specific functions to the engine
+    // Attach the test specific functions to the engine including defining our expect() function
     {
         let mut engine_guard = engine.lock().unwrap();
         engine_guard
@@ -131,23 +136,25 @@ fn main() {
             .register_fn("to_log_message", Expector::to_log_message);
     }
 
-    // Now run each test file
+    // Now parse and eval each test file
     for path in &test_files {
         let test_file_content = fs::read_to_string(path).expect("Unable to read rhai test file");
 
+        // Clone these so they can be moved into the test() closure below
         let cloned_container = test_container.clone();
         let cloned_logging_container = logging_container.clone();
         let cloned_path = path.clone();
 
+        // Create and register our test() function
         let test = move |test_name: &str, func: FnPtr| {
             cloned_container
                 .lock()
                 .unwrap()
                 .add_test(test_name, func, &cloned_path);
         };
-
         engine.lock().unwrap().register_fn("test", test);
 
+        // Now we can evaluate our AST
         let ast: Result<AST, rhai::ParseError> = {
             let engine_guard = engine.lock().unwrap();
             engine_guard.compile(&test_file_content)
@@ -156,25 +163,28 @@ fn main() {
         let cloned_container = test_container.clone();
         match ast {
             Ok(ast) => {
+                // We're setting the AST into our shared_ast so that it can be used in our expect functions
                 {
                     let mut ast_lock = shared_ast.lock().unwrap();
                     *ast_lock = Some(ast.clone());
                 }
 
+                // Now we can evaluate our test file
                 let eval_result = {
                     let engine_guard = engine.lock().unwrap();
                     engine_guard.eval::<()>(&test_file_content)
                 };
-
                 let ast_arc = Arc::new(Mutex::new(ast));
 
                 match eval_result {
                     Ok(()) => {
+                        // Get the tests (note we're doing it in a let block so that the lock on the test_container only lasts for this block)
                         let tests = {
                             let container = test_container.lock().unwrap();
                             container.get_tests().clone().to_vec()
                         };
 
+                        // Run the tests!
                         let runner: TestRunner = TestRunner::new();
                         let run_result = runner.run_tests(
                             &engine.lock().unwrap(),
@@ -185,6 +195,7 @@ fn main() {
                             cloned_container.clone(),
                         );
 
+                        // Update our test container with what passed/failed
                         let mut container = test_container.lock().unwrap();
                         container.passed_tests += run_result.passed_tests;
                         container.failed_tests += run_result.failed_tests;
@@ -193,6 +204,7 @@ fn main() {
                         }
                     }
                     Err(error) => {
+                        // We failed evaluation... fail the test suite and output the reason
                         println!("{} {}", " FAIL ".white().on_red().bold(), path);
                         let stack_trace = get_stack_trace(&error, Some(path.to_string()));
                         println!(
@@ -207,6 +219,8 @@ fn main() {
                 }
             }
             Err(error) => {
+                // We failed the AST step... fail the test suite and output the reason
+                // Note that to get a proper stack trace, we need to convert the ParseError into a EvalAltResult
                 let ParseError(error_type, position) = error;
                 let rhai_error = rhai::EvalAltResult::ErrorParsing(*error_type, position);
                 println!("{} {}", " FAIL ".white().on_red().bold(), path);
@@ -224,14 +238,17 @@ fn main() {
     }
     let end_time = Instant::now();
 
+    // Print the coverage if we've opted into it
     if config_shared.lock().unwrap().coverage.unwrap_or_default() {
         test_coverage_container.lock().unwrap().print_results();
     }
 
+    // Print the results
     test_container.lock().unwrap().print_results();
 
     let elapsed_time = end_time - start_time;
 
+    // Include the amount of time to run the tests
     let time_string = if elapsed_time.as_secs_f64() < 1.0 {
         format!("{:.2} ms", elapsed_time.as_secs_f64() * 1000.0)
     } else {

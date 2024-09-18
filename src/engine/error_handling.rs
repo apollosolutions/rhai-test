@@ -21,6 +21,8 @@ impl StackTraceDetail {
     }
 }
 
+/// Given a rhai error, will (recursively) generate an array representing a stack trace
+/// There is a lot going on here because of all the possible error types in rhai
 pub fn get_stack_trace(
     error: &Box<EvalAltResult>,
     parent_source: Option<String>,
@@ -711,6 +713,7 @@ pub fn get_stack_trace(
     stack_trace
 }
 
+/// Given a stack trace, generate a pretty output
 pub fn get_stack_trace_output(message: String, stack_trace: &Vec<StackTraceDetail>) -> String {
     let mut output = String::new();
 
@@ -741,6 +744,7 @@ pub fn get_stack_trace_output(message: String, stack_trace: &Vec<StackTraceDetai
     output
 }
 
+/// Recursively drills into a rhai error to find the most inner error
 pub fn get_inner_most_error(error: &Box<EvalAltResult>) -> &Box<EvalAltResult> {
     let inner_most_error;
 

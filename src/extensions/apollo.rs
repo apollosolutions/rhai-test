@@ -18,6 +18,7 @@ use rhai::{Engine, FnPtr};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
+/// Attach all the Router-specific functions to the Engine
 pub fn register_rhai_functions_and_types(
     engine: &mut Engine,
     logging_container: Arc<Mutex<LoggingContainer>>,
@@ -128,6 +129,7 @@ pub fn register_rhai_functions_and_types(
     });
 }
 
+/// Register our apollo_mocks interface
 pub fn register_mocking_functions(engine: &mut Engine) {
     engine
         .register_type_with_name::<apollo_mocks::SupergraphService>("SupergraphService")
@@ -176,8 +178,6 @@ mod apollo_mocks {
         SupergraphService::new()
     }
 
-    // start
-
     #[rhai_fn()]
     pub(crate) fn get_router_service_request(
     ) -> Shared<Mutex<std::option::Option<apollo_router::services::router::Request>>> {
@@ -200,8 +200,6 @@ mod apollo_mocks {
         let shared_response = Arc::new(Mutex::new(Some(response)));
         shared_response
     }
-
-    // finish
 
     #[rhai_fn()]
     pub(crate) fn get_supergraph_service_request(

@@ -56,6 +56,7 @@ impl TestRunner {
 
         for test in tests {
             if test.file_path == path {
+                // Execute the test's function body
                 match test.test_function.call::<()>(engine, ast, ()) {
                     Ok(_) => {
                         // Get the results registered by the expect statements and see if we have any errors
@@ -103,17 +104,20 @@ impl TestRunner {
                         all_passing = false;
                     }
                 }
+                // We need to reset some of our containers after each test since these track things on a test-by-test basis and expector functions don't know which test they are running in
                 logging_container.lock().unwrap().reset();
                 test_container.lock().unwrap().clear_expect_results();
             }
         }
 
+        // Did the suite pass?
         if all_passing {
             println!("{} {}", " PASS ".white().on_green().bold(), path);
         } else {
             println!("{} {}", " FAIL ".white().on_red().bold(), path);
         }
 
+        // Output the result of each individual test
         test_results.iter().for_each(|test_result| {
             if test_result.is_passed {
                 println!("\t{} {}", "✓".green().bold(), test_result.name);

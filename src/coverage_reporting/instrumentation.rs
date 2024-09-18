@@ -2,6 +2,13 @@ use super::test_coverage_container::TestCoverageContainer;
 use regex::Regex;
 use std::sync::{Arc, Mutex};
 
+/// This function is very experimental and could use a lot of cleaning up.
+/// Basically what is does is look for certain patterns via RegEx to find stuff like functions, statements, and blocks (if statements) and inject the appropriate instrumentation
+/// Additionally, it registers the statement/function/block against the test_coverage_container.
+/// We then calculate coverage by looking at the difference of registered functions/statements/blocks versus which ones actually had their tracking functions called
+///
+/// In an ideal world, we would probably iterate over the AST and inject in that way but the AST in Rhai has a lot of limitations... like it being immutable... and when walking the AST it doesn't walk function definitions
+/// To switch to an AST.walk() approach, we'd need a decent amount of changes upstream in Rhai itself.
 pub fn instrument_line(
     i: usize,
     line: &str,

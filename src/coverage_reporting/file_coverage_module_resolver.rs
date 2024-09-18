@@ -7,6 +7,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+/// This is very similar to the built-in FileModuleResolver
+/// The biggest difference is that this one instruments modules as they are loaded with test coverage functions
 pub struct FileCoverageModuleResolver {
     base_path: PathBuf,
     test_coverage_container: Arc<Mutex<TestCoverageContainer>>,
@@ -55,13 +57,16 @@ impl ModuleResolver for FileCoverageModuleResolver {
         let scope = &mut Scope::new();
         let file_path = self.get_file_path(path);
 
+        // Attempt to get the module from the cache so we're not re-loading the same module over and over again
         if let Some(module) = self.cache.lock().unwrap().get(&file_path) {
             return Ok(module.clone());
         }
 
+        // No cache was found, load it from the actual file
         let mut contents = fs::read_to_string(file_path.clone())
             .map_err(|_| Box::new(EvalAltResult::ErrorModuleNotFound(path.to_string(), pos)))?;
 
+        // Go line-by-line and instrument the code with coverage tracking functions
         contents = contents
             .lines()
             .enumerate()
@@ -69,8 +74,7 @@ impl ModuleResolver for FileCoverageModuleResolver {
             .collect::<Vec<_>>()
             .join("\n");
 
-        //println!("{}", contents);
-
+        // Now we can compile the AST
         let mut ast = engine.compile(&contents).map_err(|err| {
             Box::new(EvalAltResult::ErrorInModule(
                 path.to_string(),
@@ -80,12 +84,15 @@ impl ModuleResolver for FileCoverageModuleResolver {
         })?;
         ast.set_source(path);
 
+        // Create the module by evaling it
         let m: Arc<Module> = Module::eval_ast_as_new_raw(engine, scope, global, &ast)
             .map_err(|err| Box::new(EvalAltResult::ErrorInModule(path.to_string(), err, pos)))?
             .into();
 
+        // Store the result into cache for later use
         self.cache.lock().unwrap().insert(file_path, m.clone());
 
+        // Done!
         Ok(m)
     }
 }

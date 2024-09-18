@@ -1,9 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
-
+use super::logging_container::LoggingContainer;
 use crate::{
     coverage_reporting::{
         file_coverage_module_resolver::FileCoverageModuleResolver,
@@ -13,9 +8,13 @@ use crate::{
     Config,
 };
 use rhai::{module_resolvers::FileModuleResolver, Engine, Module};
+use std::{
+    collections::BTreeMap,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
-use super::logging_container::LoggingContainer;
-
+/// Creates a rhai engine with all extensions attached to it
 pub fn create_engine(
     test_coverage_container: Arc<Mutex<TestCoverageContainer>>,
     config: Arc<Mutex<Config>>,
@@ -26,6 +25,7 @@ pub fn create_engine(
     let coverage = config.lock().unwrap().coverage;
     let base_path = config.lock().unwrap().base_path.clone();
 
+    // If we have opted into coverage reporting, we will use the special module loader, otherwise, use the default module loader
     if coverage.unwrap_or_default() {
         let resolver = FileCoverageModuleResolver::new(
             base_path,
@@ -38,6 +38,7 @@ pub fn create_engine(
         engine.set_module_resolver(resolver);
     }
 
+    // Register all our functions and mocks
     extensions::apollo::register_rhai_functions_and_types(&mut engine, logging_container);
     extensions::helpers::register_rhai_functions_and_types(&mut engine);
     extensions::apollo::register_mocking_functions(&mut engine);

@@ -2,6 +2,7 @@ use crate::coverage_reporting::test_coverage_container::TestCoverageContainer;
 use rhai::Engine;
 use std::sync::{Arc, Mutex};
 
+/// Registers all the instrumentation functions for test coverage
 pub fn register_rhai_functions_and_types(
     engine: &mut Engine,
     test_coverage_container: Arc<Mutex<TestCoverageContainer>>,
