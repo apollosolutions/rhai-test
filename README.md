@@ -304,7 +304,7 @@ test("Should get environment variables", ||{
 
 ## Expector
 
-When writing a test, it should contain a single expect line at the end of the test. If you include zero, you will get an error. If you include more than one, you will get unexpected results.
+When writing a test, it should contain one or more expect statements.
 
 There are a handful of methods you can fun against an `expect` statement.
 

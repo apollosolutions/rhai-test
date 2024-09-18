@@ -7,6 +7,7 @@ test("Should throw an error when no client headers are provided", ||{
         client_id::process_request(request);};
 
     expect(execute).to_throw();
+    expect(log_error).to_log_message("No client headers set");
 });
 
 test("Should throw an error with message when no client headers are provided", ||{

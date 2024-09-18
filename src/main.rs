@@ -97,6 +97,7 @@ fn main() {
     let cloned_config_shared = config_shared.clone();
     let cloned_module_cache = module_cache.clone();
     let cloned_logging_container = logging_container.clone();
+    let cloned_container = test_container.clone();
 
     // Attach the test specific functions to the engine
     {
@@ -111,6 +112,7 @@ fn main() {
                     cloned_config_shared.clone(),
                     cloned_module_cache.clone(),
                     cloned_logging_container.clone(),
+                    cloned_container.clone(),
                 );
                 expector
             })
@@ -151,6 +153,7 @@ fn main() {
             engine_guard.compile(&test_file_content)
         };
 
+        let cloned_container = test_container.clone();
         match ast {
             Ok(ast) => {
                 {
@@ -179,6 +182,7 @@ fn main() {
                             &path,
                             &tests,
                             cloned_logging_container.clone(),
+                            cloned_container.clone(),
                         );
 
                         let mut container = test_container.lock().unwrap();

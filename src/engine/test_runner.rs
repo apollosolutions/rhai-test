@@ -1,11 +1,8 @@
-use std::sync::{Arc, Mutex};
-
+use super::{logging_container::LoggingContainer, test_container::TestContainer};
+use crate::engine::test_container::Test;
 use colored::*;
 use rhai::{Engine, EvalAltResult, AST};
-
-use crate::engine::test_container::Test;
-
-use super::logging_container::LoggingContainer;
+use std::sync::{Arc, Mutex};
 
 pub struct TestSuiteResult {
     pub passed_tests: i32,
@@ -51,6 +48,7 @@ impl TestRunner {
         path: &str,
         tests: &Vec<Test>,
         logging_container: Arc<Mutex<LoggingContainer>>,
+        test_container: Arc<Mutex<TestContainer>>,
     ) -> TestSuiteResult {
         let mut test_run_result = TestSuiteResult::new();
         let mut test_results = Vec::<TestResult>::new();
@@ -58,12 +56,25 @@ impl TestRunner {
 
         for test in tests {
             if test.file_path == path {
-                match test
-                    .test_function
-                    .call::<Result<(), String>>(engine, ast, ())
-                {
-                    Ok(result) => match result {
-                        Ok(()) => {
+                match test.test_function.call::<()>(engine, ast, ()) {
+                    Ok(_) => {
+                        // Get the results registered by the expect statements and see if we have any errors
+                        let locked_container = test_container.lock().unwrap();
+                        let first_error = locked_container
+                            .expect_results
+                            .iter()
+                            .find_map(|r| r.as_ref().err());
+
+                        // If we have any errors, test failed, otherwise, passed
+                        if first_error.is_some() {
+                            test_results.push(TestResult::new(
+                                test.name.clone(),
+                                false,
+                                first_error.unwrap().to_string(),
+                            ));
+                            test_run_result.failed_tests += 1;
+                            all_passing = false;
+                        } else {
                             test_results.push(TestResult::new(
                                 test.name.clone(),
                                 true,
@@ -71,16 +82,7 @@ impl TestRunner {
                             ));
                             test_run_result.passed_tests += 1;
                         }
-                        Err(error) => {
-                            test_results.push(TestResult::new(
-                                test.name.clone(),
-                                false,
-                                error.to_string(),
-                            ));
-                            test_run_result.failed_tests += 1;
-                            all_passing = false;
-                        }
-                    },
+                    }
                     Err(error) => {
                         let mut reason = error.to_string();
 
@@ -102,6 +104,7 @@ impl TestRunner {
                     }
                 }
                 logging_container.lock().unwrap().reset();
+                test_container.lock().unwrap().clear_expect_results();
             }
         }
 

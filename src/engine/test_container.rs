@@ -19,6 +19,7 @@ impl Test {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct TestSuite {
     #[allow(dead_code)]
     file_path: String,
@@ -34,11 +35,13 @@ impl TestSuite {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct TestContainer {
     pub tests: Vec<Test>,
     pub test_suites: HashMap<String, TestSuite>,
     pub passed_tests: i32,
     pub failed_tests: i32,
+    pub expect_results: Vec<Result<(), String>>,
 }
 
 impl TestContainer {
@@ -48,6 +51,7 @@ impl TestContainer {
             test_suites: HashMap::new(),
             passed_tests: 0,
             failed_tests: 0,
+            expect_results: Vec::new(),
         }
     }
 
@@ -120,5 +124,13 @@ impl TestContainer {
                 self.tests.len()
             );
         }
+    }
+
+    pub fn add_expect_result(&mut self, result: Result<(), String>) {
+        self.expect_results.push(result);
+    }
+
+    pub fn clear_expect_results(&mut self) {
+        self.expect_results = Vec::new();
     }
 }

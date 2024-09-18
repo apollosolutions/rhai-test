@@ -1,3 +1,8 @@
+use super::{
+    error_handling::{get_inner_most_error, get_stack_trace, get_stack_trace_output},
+    logging_container::{LogLevel, LoggingContainer},
+    test_container::TestContainer,
+};
 use crate::coverage_reporting::test_coverage_container::TestCoverageContainer;
 use crate::engine::engine::create_engine;
 use crate::Config;
@@ -7,11 +12,6 @@ use std::{
     collections::BTreeMap,
     path::PathBuf,
     sync::{Arc, Mutex},
-};
-
-use super::{
-    error_handling::{get_inner_most_error, get_stack_trace, get_stack_trace_output},
-    logging_container::{LogLevel, LoggingContainer},
 };
 
 #[derive(Debug, Clone)]
@@ -77,6 +77,7 @@ pub struct Expector {
     config: Option<Arc<Mutex<Config>>>,
     module_cache: Option<Arc<Mutex<BTreeMap<PathBuf, Arc<Module>>>>>,
     logging_container: Option<Arc<Mutex<LoggingContainer>>>,
+    test_container: Option<Arc<Mutex<TestContainer>>>,
 }
 
 impl Expector {
@@ -94,6 +95,7 @@ impl Expector {
             config: None,
             module_cache: None,
             logging_container: None,
+            test_container: None,
         }
     }
 
@@ -104,12 +106,14 @@ impl Expector {
         config: Arc<Mutex<Config>>,
         module_cache: Arc<Mutex<BTreeMap<PathBuf, Arc<Module>>>>,
         logging_container: Arc<Mutex<LoggingContainer>>,
+        test_container: Arc<Mutex<TestContainer>>,
     ) {
         self.ast = Some(ast);
         self.test_coverage_container = Some(test_coverage_container);
         self.config = Some(config);
         self.module_cache = Some(module_cache);
         self.logging_container = Some(logging_container);
+        self.test_container = Some(test_container);
     }
 
     pub fn not(mut self) -> Self {
@@ -117,12 +121,29 @@ impl Expector {
         self
     }
 
-    pub fn to_be(&mut self, expected: Dynamic) -> Result<(), String> {
+    pub fn to_be(&mut self, expected: Dynamic) {
         if let ExpectedValue::Error(err_msg) = &self.value {
-            return Err(err_msg.clone());
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(err_msg.clone()));
+            return ();
         }
 
-        let condition = &self.value == &ExpectedValue::from_dynamic(&expected)?;
+        let condition = match &ExpectedValue::from_dynamic(&expected) {
+            Ok(val) => &self.value == val,
+            Err(error) => {
+                self.test_container
+                    .as_mut()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .add_expect_result(Result::Err(error.clone()));
+                return ();
+            }
+        };
 
         if !condition && !self.negative {
             let error = format!(
@@ -130,22 +151,43 @@ impl Expector {
                 expected, self.value
             );
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else if condition && self.negative {
             let error = format!(
                 "Expected value {:?} to not be {:?} but it was",
                 self.value, expected
             );
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else {
-            Ok(())
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Ok(()));
         }
     }
 
-    pub fn to_exist(&mut self) -> Result<(), String> {
+    pub fn to_exist(&mut self) {
         if let ExpectedValue::Error(err_msg) = &self.value {
-            return Err(err_msg.clone());
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(err_msg.clone()));
+            return ();
         }
 
         let condition: bool = if let ExpectedValue::Nothing(_) = &self.value {
@@ -157,26 +199,57 @@ impl Expector {
         if !condition && !self.negative {
             let error = format!("Expected value {:?} to exist", self.value);
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else if condition && self.negative {
             let error = format!("Expected value {:?} to not exist", self.value);
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else {
-            Ok(())
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Ok(()));
         }
     }
 
-    pub fn to_match(&mut self, pattern: &str) -> Result<(), String> {
+    pub fn to_match(&mut self, pattern: &str) {
         if let ExpectedValue::Error(err_msg) = &self.value {
-            return Err(err_msg.clone());
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(err_msg.clone()));
+            return ();
         }
 
         let regex = Regex::new(pattern).unwrap();
 
         let condition = match &self.value {
             ExpectedValue::String(value) => regex.is_match(value),
-            _ => return Err("Expected value passed to expect() to be a string".to_string()),
+            _ => {
+                self.test_container
+                    .as_mut()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .add_expect_result(Result::Err(
+                        "Expected value passed to expect() to be a string".to_string(),
+                    ));
+                return ();
+            }
         };
 
         if !condition && !self.negative {
@@ -185,16 +258,31 @@ impl Expector {
                 self.value, pattern
             );
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else if condition && self.negative {
             let error = format!(
                 "Expected value {:?} to not match pattern {:?} but it did",
                 self.value, pattern
             );
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else {
-            Ok(())
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Ok(()));
         }
     }
 
@@ -202,25 +290,35 @@ impl Expector {
         &mut self,
         status_code_to_match: i64,
         message_to_match: &str,
-    ) -> Result<(), String> {
-        let check1 = self.to_throw_status(status_code_to_match);
-        let check2 = self.to_throw_message(message_to_match);
-
-        if check1.is_err() {
-            return check1;
-        } else if check2.is_err() {
-            return check2;
-        } else {
-            Ok(())
-        }
+    ) {
+        self.to_throw_status(status_code_to_match);
+        self.to_throw_message(message_to_match);
     }
 
-    pub fn to_throw_status(&mut self, status_code_to_match: i64) -> Result<(), String> {
+    pub fn to_throw_status(&mut self, status_code_to_match: i64) {
         if let ExpectedValue::Error(err_msg) = &self.value {
-            return Err(err_msg.clone());
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(err_msg.clone()));
+            return ();
         }
 
-        let (result, _, status_code) = &self.run_throw_function()?;
+        let binding = self.run_throw_function();
+        let (result, _, status_code) = match &binding {
+            Ok(r) => r,
+            Err(error) => {
+                self.test_container
+                    .as_mut()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .add_expect_result(Result::Err(error.clone()));
+                return ();
+            }
+        };
 
         let condition = result.is_err();
         let condition2 = status_code.clone() == status_code_to_match.to_string();
@@ -228,27 +326,67 @@ impl Expector {
         if !condition && !self.negative {
             let error = format!("Expected function to throw but it did not");
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else if condition && self.negative {
             let error = format!("Expected function to not throw but it did");
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else if condition && !condition2 {
-            Err(format!(
+            let error = format!(
                 "Expected function to throw error with status '{}' but instead received '{}'",
                 status_code_to_match, status_code
-            ))
+            );
+
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else {
-            Ok(())
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Ok(()));
         }
     }
 
-    pub fn to_throw_message(&mut self, message_to_match: &str) -> Result<(), String> {
+    pub fn to_throw_message(&mut self, message_to_match: &str) {
         if let ExpectedValue::Error(err_msg) = &self.value {
-            return Err(err_msg.clone());
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(err_msg.clone()));
+            return ();
         }
 
-        let (result, message, ..) = &self.run_throw_function()?;
+        let binding = self.run_throw_function();
+        let (result, message, _) = match &binding {
+            Ok(r) => r,
+            Err(error) => {
+                self.test_container
+                    .as_mut()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .add_expect_result(Result::Err(error.clone()));
+                return ();
+            }
+        };
 
         let condition = result.is_err();
         let condition2 = message == message_to_match;
@@ -271,40 +409,95 @@ impl Expector {
         if !condition && !self.negative {
             let error = format!("Expected function to throw but it did not");
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else if condition && self.negative {
             let error = format!("Expected function to not throw but it did");
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else if condition && (!condition2 && !condition3) {
-            Err(format!(
+            let error = format!(
                 "Expected function to throw error with message '{}' but instead received '{}'",
                 message_to_match, message
-            ))
+            );
+
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else {
-            Ok(())
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Ok(()));
         }
     }
 
-    pub fn to_throw(&mut self) -> Result<(), String> {
+    pub fn to_throw(&mut self) {
         if let ExpectedValue::Error(err_msg) = &self.value {
-            return Err(err_msg.clone());
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(err_msg.clone()));
+            return ();
         }
 
-        let (result, ..) = &self.run_throw_function()?;
+        let binding = self.run_throw_function();
+        let (result, ..) = match &binding {
+            Ok(r) => r,
+            Err(error) => {
+                self.test_container
+                    .as_mut()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .add_expect_result(Result::Err(error.clone()));
+                return ();
+            }
+        };
 
         let condition = result.is_err();
 
         if !condition && !self.negative {
             let error = format!("Expected function to throw but it did not");
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else if condition && self.negative {
             let error = format!("Expected function to not throw but it did");
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else {
-            Ok(())
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Ok(()));
         }
     }
 
@@ -350,7 +543,7 @@ impl Expector {
         Ok((result, message, status_code))
     }
 
-    pub fn to_log(&mut self) -> Result<(), String> {
+    pub fn to_log(&mut self) {
         let logging_container = self.logging_container.clone().unwrap();
 
         let condition = match &self.value {
@@ -358,24 +551,47 @@ impl Expector {
                 logging_container.lock().unwrap().has_log(level.clone())
             }
             _ => {
-                return Err("Expected value passed to expect() to be a logging function".to_string())
+                self.test_container
+                    .as_mut()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .add_expect_result(Result::Err(
+                        "Expected value passed to expect() to be a logging function".to_string(),
+                    ));
+                return ();
             }
         };
 
         if !condition && !self.negative {
             let error = format!("Expected log function to be called but it was not");
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else if condition && self.negative {
             let error = format!("Expected log function to not be called but it was");
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else {
-            Ok(())
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Ok(()));
         }
     }
 
-    pub fn to_log_message(&mut self, pattern: &str) -> Result<(), String> {
+    pub fn to_log_message(&mut self, pattern: &str) {
         let logging_container = self.logging_container.clone().unwrap();
 
         let condition = match &self.value {
@@ -384,7 +600,15 @@ impl Expector {
                 .unwrap()
                 .has_matching_log(level.clone(), pattern),
             _ => {
-                return Err("Expected value passed to expect() to be a logging function".to_string())
+                self.test_container
+                    .as_mut()
+                    .unwrap()
+                    .lock()
+                    .unwrap()
+                    .add_expect_result(Result::Err(
+                        "Expected value passed to expect() to be a logging function".to_string(),
+                    ));
+                return ();
             }
         };
 
@@ -396,16 +620,31 @@ impl Expector {
                 logs.iter().map(|log| format!("\t\t[{}] {}", log.level.to_string(), log.message)).collect::<Vec<_>>().join("\n")
             );
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else if condition && self.negative {
             let error = format!(
                 "Expected log function to not be called with '{}' but it was",
                 pattern
             );
 
-            Err(error)
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Err(error.clone()));
         } else {
-            Ok(())
+            self.test_container
+                .as_mut()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .add_expect_result(Result::Ok(()));
         }
     }
 }
