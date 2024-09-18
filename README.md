@@ -2,7 +2,11 @@
 
 This is an experimental CLI tool for running unit tests against your Router rhai scripts. It allows you to write unit tests in rhai that feel familiar and natural. This provides not only the mechanism to write and run the tests but also utilities for mocking apollo objects that allow you to fully test against the Router lifecycle.
 
+## ⚠️ Disclaimer ⚠️
+This project is experimental and is not a fully-supported Apollo Graph project. We may not respond to issues and pull requests at this time.
+
 - [rhai-test](#rhai-test)
+  - [⚠️ Disclaimer ⚠️](#️-disclaimer-️)
   - [Example](#example)
   - [Getting Started](#getting-started)
     - [Config File](#config-file)
@@ -175,7 +179,7 @@ Config values:
 |-----|-----|-----|-----|
 | testMatch | - | Yes | An array of glob patterns of where to find test files. Recommended value: `["**/*.test.rhai"]`
 | basePath | - | Yes | Where your rhai files are located |
-| coverage | false | no | Whether or not to provide a coverage report. Note these is very experimental and should not be relied on for accurate metrics at this time. |
+| coverage | false | no | [EXPERIMENTAL] Whether or not to provide a coverage report. Note these is very experimental and should not be relied on for accurate metrics at this time. |
 
 Example config file:
 
