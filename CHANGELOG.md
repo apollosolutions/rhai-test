@@ -1,3 +1,9 @@
+## 0.2.1 (2024-09-18)
+
+### 🚀 Features
+
+- Tests can now contain more than one expect statement
+
 ## 0.2.0 (2024-09-17)
 
 ### ❗️Breaking ❗
