@@ -50,6 +50,10 @@ jobs:
             - name: "verify keys"
               run: |
                 security list-keychains
+
+                security default-keychain -s /Users/runner/Library/Keychains/signing_temp.keychain-db
+
+                security unlock-keychain -p ${{steps.gsm-secrets.outputs.MACOS_KEYCHAIN_PASSWORD}} /Users/runner/Library/Keychains/signing_temp.keychain-db
               
                 echo "Verifying keychain is set up correctly..."
                 security find-identity -v -p codesigning
