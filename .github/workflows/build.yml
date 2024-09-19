@@ -107,3 +107,6 @@ jobs:
                     mkdir "$KEYCHAIN_NAME/dist"
                     cp "$BINARY_PATH" "$KEYCHAIN_NAME/dist/rhaitest"
                     zip -r "$KEYCHAIN_NAME/rhaitest-$VERSION.zip" "$KEYCHAIN_NAME/dist"
+
+                    echo "Beginning notarization process..."
+                    xcrun notarytool submit "$KEYCHAIN_NAME/rhaitest-$VERSION.zip" --apple-id "$APPLE_USERNAME" --password "$MACOS_NOTARIZATION_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait --timeout 20m
