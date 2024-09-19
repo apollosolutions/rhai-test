@@ -16,7 +16,6 @@ jobs:
                       os: macos-latest
         runs-on: ${{ matrix.os }}
         permissions:
-            contents: write
             id-token: write
         env:
             archive_name: rhai-test
@@ -36,7 +35,7 @@ jobs:
               uses: 'google-github-actions/auth@v2'
               with:
                 workload_identity_provider: 'projects/865738624352/locations/global/workloadIdentityPools/github-d8bck/providers/github-d8bck'
-                service_account: apollosolution-rhai-test@platform-mgmt-service-e0izz.iam.gserviceaccount.com
+                service_account: apollosolutions-rhai-test@platform-mgmt-service-e0izz.iam.gserviceaccount.com
                 project_id: platform-cross-environment
 
             # Gets some secrets from Google Secret Manager.
