@@ -8,7 +8,19 @@ defaults:
     shell: bash
 
 jobs:              
+    get-version:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Install Knope
+              uses: knope-dev/action@v2.1.0
+              with:
+                version: 0.18.0
+            - name: Store version
+              run: echo "version=$(knope get-version)" >> $GITHUB_OUTPUT
+
     build-artifacts:
+        needs: get-version
         strategy:
             matrix:
                 include:
@@ -63,15 +75,15 @@ jobs:
 
             - name: Sign Apple Binary
               run: |
-                    MACOS_CERT_BUNDLE_PASSWORD={{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_PASSWORD}}
-                    MACOS_CERT_BUNDLE_BASE64={{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_BASE64}}
-                    MACOS_NOTARIZATION_PASSWORD={{steps.gsm-secrets.outputs.MACOS_NOTARIZATION_PASSWORD}}
-                    MACOS_KEYCHAIN_PASSWORD={{steps.gsm-secrets.outputs.MACOS_KEYCHAIN_PASSWORD}}
+                    MACOS_CERT_BUNDLE_PASSWORD=${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_PASSWORD}}
+                    MACOS_CERT_BUNDLE_BASE64=${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_BASE64}}
+                    MACOS_NOTARIZATION_PASSWORD=${{steps.gsm-secrets.outputs.MACOS_NOTARIZATION_PASSWORD}}
+                    MACOS_KEYCHAIN_PASSWORD=${{steps.gsm-secrets.outputs.MACOS_KEYCHAIN_PASSWORD}}
 
                     APPLE_TEAM_ID="YQK948L752"
                     APPLE_USERNAME="opensource@apollographql.com"
 
-                    VERSION=$(knope get-version)
+                    VERSION=${{ needs.get-version.outputs.version }}
                     BINARY_PATH=target/${{ matrix.target }}/release/${{ env.archive_name }}
                     ENTITLEMENTS_PATH="public/macos-entitlements.plist"
 
