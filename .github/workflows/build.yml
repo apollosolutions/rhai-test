@@ -29,6 +29,11 @@ jobs:
               with:
                 repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+            - name: Install Knope
+              uses: knope-dev/action@v2.1.0
+              with:
+                version: 0.18.0
+
             # Authenticate to GCP using Workload Identity Federation.
             # We set up the WI provider in the `github_actions_federation` resource in the
             # `platform-infrastructure` repository.
