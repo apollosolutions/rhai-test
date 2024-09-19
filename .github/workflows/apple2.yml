@@ -1,0 +1,48 @@
+name: Test Building for Apple (option 2)
+
+on: workflow_dispatch
+
+defaults:
+  run:
+    # necessary for windows
+    shell: bash
+
+jobs:              
+    build-artifacts:
+        runs-on: macos-latest
+        permissions:
+            contents: read
+            id-token: write
+        steps:
+            - uses: actions/checkout@v4
+
+            # Authenticate to GCP using Workload Identity Federation.
+            # We set up the WI provider in the `github_actions_federation` resource in the
+            # `platform-infrastructure` repository.
+            - id: google-auth
+              uses: 'google-github-actions/auth@v2'
+              with:
+                workload_identity_provider: 'projects/865738624352/locations/global/workloadIdentityPools/github-d8bck/providers/github-d8bck'
+                service_account: apollosolutions-rhai-test@platform-mgmt-service-e0izz.iam.gserviceaccount.com
+                project_id: platform-cross-environment
+
+            # Gets some secrets from Google Secret Manager.
+            - id: gsm-secrets
+              uses: 'google-github-actions/get-secretmanager-secrets@v2'
+              with:
+                # The format of each line here is OUTPUTNAME:PROJECT/SECRET; you can
+                # read the secrets later in this file with
+                # `steps.gsm-secrets.outputs.OUTPUTNAME`. These secrets are created in
+                # the `argo` resource in the `domain-deployment` repository.
+                secrets: |-
+                  MACOS_CERT_BUNDLE_PASSWORD:platform-mgmt-secrets-3xnc4/apollosolutions-rhai-test-MACOS_CERT_BUNDLE_PASSWORD
+                  MACOS_CERT_BUNDLE_BASE64:platform-mgmt-secrets-3xnc4/apollosolutions-rhai-test-MACOS_CERT_BUNDLE_BASE64
+                  MACOS_NOTARIZATION_PASSWORD:platform-mgmt-secrets-3xnc4/apollosolutions-rhai-test-MACOS_NOTARIZATION_PASSWORD
+                  MACOS_KEYCHAIN_PASSWORD:platform-mgmt-secrets-3xnc4/apollosolutions-rhai-test-MACOS_KEYCHAIN_PASSWORD
+            
+            - name: Set up Apple certificate
+              uses: apple-actions/import-codesign-certs@v3
+              with:
+                p12-file-base64: ${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_BASE64}}
+                p12-password: ${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_PASSWORD}}
+                keychain-password: ${{steps.gsm-secrets.outputs.MACOS_KEYCHAIN_PASSWORD}}
