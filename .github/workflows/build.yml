@@ -55,3 +55,55 @@ jobs:
             
             - name: Build
               run: cargo build --release --target ${{ matrix.target }}
+
+            - name: Sign Apple Binary
+              run: |
+                    MACOS_CERT_BUNDLE_PASSWORD={{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_PASSWORD}}
+                    MACOS_CERT_BUNDLE_BASE64={{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_BASE64}}
+                    MACOS_NOTARIZATION_PASSWORD={{steps.gsm-secrets.outputs.MACOS_NOTARIZATION_PASSWORD}}
+                    MACOS_KEYCHAIN_PASSWORD={{steps.gsm-secrets.outputs.MACOS_KEYCHAIN_PASSWORD}}
+
+                    APPLE_TEAM_ID="YQK948L752"
+                    APPLE_USERNAME="opensource@apollographql.com"
+
+                    VERSION=$(knope get-version)
+                    BINARY_PATH=target/${{ matrix.target }}/release/${{ env.archive_name }}
+                    ENTITLEMENTS_PATH="public/macos-entitlements.plist"
+
+                    # Create a temporary keychain
+                    KEYCHAIN_NAME="rhaitest-keychain"
+                    mkdir $KEYCHAIN_NAME
+                    echo "Creating keychain..."
+                    security create-keychain -p "${MACOS_KEYCHAIN_PASSWORD}" $KEYCHAIN_NAME
+                    echo "Removing relock timeout on keychain..."
+                    security set-keychain-settings $KEYCHAIN_NAME
+
+                    echo "Decoding certificate bundle..."
+                    echo "${MACOS_CERT_BUNDLE_BASE64}" | base64 --decode > $KEYCHAIN_NAME/certificate.p12
+
+                    echo "Importing codesigning certificate to build keychain..."
+                    security import $KEYCHAIN_NAME/certificate.p12 -k $KEYCHAIN_NAME -P "${MACOS_CERT_BUNDLE_PASSWORD}" -T /usr/bin/codesign
+
+                    echo "Adding the codesign tool to the security partition-list..."
+                    security set-key-partition-list -S "apple-tool:,apple:,codesign:" -s -k "${MACOS_KEYCHAIN_PASSWORD}" $KEYCHAIN_NAME
+
+                    echo "Setting default keychain..."
+                    security default-keychain -d user -s $KEYCHAIN_NAME
+
+                    echo "Unlocking keychain..."
+                    security unlock-keychain -p "${MACOS_KEYCHAIN_PASSWORD}" $KEYCHAIN_NAME
+
+                    echo "Verifying keychain is set up correctly..."
+                    security find-identity -v -p codesigning
+
+                    # Sign the binary
+                    echo "Signing code (step 1)..."
+                    codesign --sign "$APPLE_TEAM_ID" --options runtime --entitlements $ENTITLEMENTS_PATH --force --timestamp "$BINARY_PATH" -v
+
+                    echo "Signing code (step 2)..."
+                    codesign -vvv --deep --strict "$BINARY_PATH"
+
+                    echo "Zipping dist..."
+                    mkdir "$KEYCHAIN_NAME/dist"
+                    cp "$BINARY_PATH" "$KEYCHAIN_NAME/dist/rhaitest"
+                    zip -r "$KEYCHAIN_NAME/rhaitest-$VERSION.zip" "$KEYCHAIN_NAME/dist"
