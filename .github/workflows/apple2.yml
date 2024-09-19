@@ -49,5 +49,7 @@ jobs:
 
             - name: "verify keys"
               run: |
+                security list-keychains
+              
                 echo "Verifying keychain is set up correctly..."
                 security find-identity -v -p codesigning
