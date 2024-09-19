@@ -16,6 +16,7 @@ jobs:
                       os: macos-latest
         runs-on: ${{ matrix.os }}
         permissions:
+            contents: read
             id-token: write
         env:
             archive_name: rhai-test
