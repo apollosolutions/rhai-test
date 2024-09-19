@@ -10,6 +10,8 @@ defaults:
 jobs:              
     get-version:
         runs-on: ubuntu-latest
+        outputs:
+            version: ${{ steps.store-version.outputs.sha }}
         steps:
             - uses: actions/checkout@v4
             - name: Install Knope
@@ -17,6 +19,7 @@ jobs:
               with:
                 version: 0.18.0
             - name: Store version
+              id: store-version
               run: echo "version=$(knope get-version)" >> $GITHUB_OUTPUT
 
     build-artifacts:
