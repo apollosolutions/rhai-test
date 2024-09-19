@@ -15,6 +15,9 @@ jobs:
                     - target: aarch64-apple-darwin
                       os: macos-latest
         runs-on: ${{ matrix.os }}
+        permissions:
+            contents: write
+            id-token: write
         env:
             archive_name: rhai-test
         steps:
