@@ -40,20 +40,37 @@ jobs:
                   MACOS_NOTARIZATION_PASSWORD:platform-mgmt-secrets-3xnc4/apollosolutions-rhai-test-MACOS_NOTARIZATION_PASSWORD
                   MACOS_KEYCHAIN_PASSWORD:platform-mgmt-secrets-3xnc4/apollosolutions-rhai-test-MACOS_KEYCHAIN_PASSWORD
             
-            - name: Set up Apple certificate
-              uses: apple-actions/import-codesign-certs@v3
-              with:
-                p12-file-base64: ${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_BASE64}}
-                p12-password: ${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_PASSWORD}}
-                keychain-password: ${{steps.gsm-secrets.outputs.MACOS_KEYCHAIN_PASSWORD}}
-
-            - name: "verify keys"
+            - name: Sign Apple Binary
               run: |
-                security list-keychains
+                MACOS_CERT_BUNDLE_PASSWORD=${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_PASSWORD}}
+                MACOS_CERT_BUNDLE_BASE64=${{ secrets.MACOS_CERT_BUNDLE_BASE64 }}
+                OLD_MACOS_CERT_BUNDLE_BASE64=${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_BASE64}}
+                MACOS_NOTARIZATION_PASSWORD=${{steps.gsm-secrets.outputs.MACOS_NOTARIZATION_PASSWORD}}
+                MACOS_KEYCHAIN_PASSWORD=${{steps.gsm-secrets.outputs.MACOS_KEYCHAIN_PASSWORD}}
 
-                security default-keychain -s /Users/runner/Library/Keychains/signing_temp.keychain-db
+                # Create a temporary keychain
+                KEYCHAIN_NAME="rhaitest-keychain"
+                mkdir $KEYCHAIN_NAME
+                echo "Creating keychain..."
+                security create-keychain -p "${MACOS_KEYCHAIN_PASSWORD}" $KEYCHAIN_NAME
+                echo "Removing relock timeout on keychain..."
+                security set-keychain-settings $KEYCHAIN_NAME
 
-                security unlock-keychain -p ${{steps.gsm-secrets.outputs.MACOS_KEYCHAIN_PASSWORD}} /Users/runner/Library/Keychains/signing_temp.keychain-db
-              
+                echo "Decoding certificate bundle..."
+                echo "${MACOS_CERT_BUNDLE_BASE64}" | base64 --decode > $KEYCHAIN_NAME/certificate.p12
+
+                echo "Importing codesigning certificate to build keychain..."
+                security import $KEYCHAIN_NAME/certificate.p12 -k $KEYCHAIN_NAME -P "${MACOS_CERT_BUNDLE_PASSWORD}" -T /usr/bin/codesign
+
+                echo "Adding the codesign tool to the security partition-list..."
+                security set-key-partition-list -S "apple-tool:,apple:,codesign:" -s -k "${MACOS_KEYCHAIN_PASSWORD}" $KEYCHAIN_NAME
+
+                echo "Setting default keychain..."
+                security default-keychain -d user -s $KEYCHAIN_NAME
+
+                echo "Unlocking keychain..."
+                security unlock-keychain -p "${MACOS_KEYCHAIN_PASSWORD}" $KEYCHAIN_NAME
+
                 echo "Verifying keychain is set up correctly..."
                 security find-identity -v -p codesigning
+    
