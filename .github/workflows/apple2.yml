@@ -46,17 +46,8 @@ jobs:
                 p12-file-base64: ${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_BASE64}}
                 p12-password: ${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_PASSWORD}}
                 keychain-password: ${{steps.gsm-secrets.outputs.MACOS_KEYCHAIN_PASSWORD}}
-                keychain: rhaitest-keychain
 
             - name: "verify keys"
               run: |
-                KEYCHAIN_NAME="rhaitest-keychain"  
-              
-                echo "Setting default keychain..."
-                security default-keychain -d user -s $KEYCHAIN_NAME
-
-                echo "Unlocking keychain..."
-                security unlock-keychain -p "${MACOS_KEYCHAIN_PASSWORD}" $KEYCHAIN_NAME
-
                 echo "Verifying keychain is set up correctly..."
                 security find-identity -v -p codesigning
