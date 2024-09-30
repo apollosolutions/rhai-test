@@ -25,6 +25,7 @@ jobs:
       runs-on: ubuntu-latest
       outputs:
         sha: ${{ steps.commit.outputs.sha }}
+        version: ${{ steps.store-version.outputs.version }}
       steps:
         - uses: actions/checkout@v4.1.7
           name: Fetch entire history (for conventional commits)
@@ -43,6 +44,9 @@ jobs:
         - name: Store commit
           id: commit
           run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+        - name: Store version
+          id: store-version
+          run: echo "version=$(knope get-version)" >> $GITHUB_OUTPUT
               
     build-artifacts:
         needs: prepare-release
@@ -56,6 +60,9 @@ jobs:
                     - target: x86_64-pc-windows-msvc
                       os: windows-latest
         runs-on: ${{ matrix.os }}
+        permissions:
+            contents: read
+            id-token: write
         env:
             archive_name: rhai-test
         steps:
@@ -76,7 +83,7 @@ jobs:
               uses: 'google-github-actions/auth@v2'
               with:
                 workload_identity_provider: 'projects/865738624352/locations/global/workloadIdentityPools/github-d8bck/providers/github-d8bck'
-                service_account: apollosolution-rhai-test@platform-mgmt-service-e0izz.iam.gserviceaccount.com
+                service_account: apollosolutions-rhai-test@platform-mgmt-service-e0izz.iam.gserviceaccount.com
                 project_id: platform-cross-environment
 
             # Gets some secrets from Google Secret Manager.
@@ -95,6 +102,82 @@ jobs:
             
             - name: Build
               run: cargo build --release --target ${{ matrix.target }}
+
+            - name: Sign Apple Binary
+              if: ${{ matrix.os == 'macos-latest' }}
+              run: |
+                    MACOS_CERT_BUNDLE_PASSWORD=${{ secrets.MACOS_CERT_BUNDLE_PASSWORD }}
+                    MACOS_CERT_BUNDLE_BASE64=${{ secrets.MACOS_CERT_BUNDLE_BASE64 }}
+                    MACOS_KEYCHAIN_PASSWORD=${{secrets.MACOS_KEYCHAIN_PASSWORD}}
+                    MACOS_NOTARIZATION_PASSWORD=${{secrets.MACOS_NOTARIZATION_PASSWORD}}
+
+                    APPLE_TEAM_ID="YQK948L752"
+                    APPLE_USERNAME="opensource@apollographql.com"
+
+                    echo "Pre-check: Valid Codesigning Identify"
+                    security find-identity -v -p codesigning
+                    echo "Pre-check: Codesigning Identify"
+                    security find-identity -p codesigning
+                    echo "Pre-check: Any Identify"
+                    security find-identity
+
+                    echo "|||||||||||||||||||||||||||||||||||||||||||||"
+
+                    VERSION=${{ needs.prepare-release.outputs.version }}
+                    BINARY_PATH=target/${{ matrix.target }}/release/${{ env.archive_name }}
+                    ENTITLEMENTS_PATH="macos-entitlements.plist"
+
+                    # Create a temporary keychain
+                    KEYCHAIN_NAME="rhaitest-keychain"
+                    mkdir $KEYCHAIN_NAME
+                    echo "Creating keychain..."
+                    security create-keychain -p "${MACOS_KEYCHAIN_PASSWORD}" $KEYCHAIN_NAME
+                    echo "Removing relock timeout on keychain..."
+                    security set-keychain-settings $KEYCHAIN_NAME
+
+                    echo "Decoding certificate bundle..."
+                    echo "${MACOS_CERT_BUNDLE_BASE64}" | base64 --decode > $KEYCHAIN_NAME/certificate.p12
+
+                    echo "Importing codesigning certificate to build keychain..."
+                    security import $KEYCHAIN_NAME/certificate.p12 -k $KEYCHAIN_NAME -P "${MACOS_CERT_BUNDLE_PASSWORD}" -T /usr/bin/codesign
+
+                    echo "Adding the codesign tool to the security partition-list..."
+                    security set-key-partition-list -S "apple-tool:,apple:,codesign:" -s -k "${MACOS_KEYCHAIN_PASSWORD}" $KEYCHAIN_NAME
+
+                    echo "Setting default keychain..."
+                    security default-keychain -d user -s $KEYCHAIN_NAME
+
+                    echo "Unlocking keychain..."
+                    security unlock-keychain -p "${MACOS_KEYCHAIN_PASSWORD}" $KEYCHAIN_NAME
+
+                    echo "Verifying keychain is set up correctly..."
+                    security find-identity -v -p codesigning
+
+                    echo "|||||||||||||||||||||||||||||||||||||||||||||"
+
+                    echo "Post-check: Valid Codesigning Identify"
+                    security find-identity -v -p codesigning
+                    echo "Post-check: Codesigning Identify"
+                    security find-identity -p codesigning
+                    echo "Post-check: Any Identify"
+                    security find-identity
+
+                    echo "|||||||||||||||||||||||||||||||||||||||||||||"
+
+                    # Sign the binary
+                    echo "Signing code (step 1)..."
+                    codesign --sign "$APPLE_TEAM_ID" --options runtime --entitlements $ENTITLEMENTS_PATH --force --timestamp "$BINARY_PATH" -v
+
+                    echo "Signing code (step 2)..."
+                    codesign -vvv --deep --strict "$BINARY_PATH"
+
+                    echo "Zipping dist..."
+                    mkdir "$KEYCHAIN_NAME/dist"
+                    cp "$BINARY_PATH" "$KEYCHAIN_NAME/dist/rhaitest"
+                    zip -r "$KEYCHAIN_NAME/rhaitest-$VERSION.zip" "$KEYCHAIN_NAME/dist"
+
+                    echo "Beginning notarization process..."
+                    xcrun notarytool submit "$KEYCHAIN_NAME/rhaitest-$VERSION.zip" --apple-id "$APPLE_USERNAME" --password "$MACOS_NOTARIZATION_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait --timeout 20m
             
             - name: Create Archive Folder
               run: mkdir ${{ env.archive_name }}
