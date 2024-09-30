@@ -1,3 +1,9 @@
+## 0.2.2 (2024-09-30)
+
+### 🚀 Features
+
+- Sign binary so it can be easily run on Apple machines
+
 ## 0.2.1 (2024-09-18)
 
 ### 🚀 Features
