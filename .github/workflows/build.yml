@@ -150,3 +150,20 @@ jobs:
 
                     echo "Beginning notarization process..."
                     xcrun notarytool submit "$KEYCHAIN_NAME/rhaitest-$VERSION.zip" --apple-id "$APPLE_USERNAME" --password "$MACOS_NOTARIZATION_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait --timeout 20m
+            
+            - name: Create Archive Folder
+              run: mkdir ${{ env.archive_name }}
+
+            - name: Copy Unix Artifact
+              if: ${{ matrix.os != 'windows-latest' }}
+              run: cp target/${{ matrix.target }}/release/${{ env.archive_name }} ${{ env.archive_name }}
+
+            - name: Create Tar Archive
+              run: tar -czf ${{ env.archive_name }}-${{ matrix.target }}.tgz ${{ env.archive_name }}
+
+            - name: Upload Artifact
+              uses: actions/upload-artifact@v4.4.0
+              with:
+                name: ${{ matrix.target }}
+                path: ${{ env.archive_name }}-${{ matrix.target }}.tgz
+                if-no-files-found: error
