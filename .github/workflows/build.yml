@@ -78,13 +78,22 @@ jobs:
 
             - name: Sign Apple Binary
               run: |
-                    MACOS_CERT_BUNDLE_PASSWORD=${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_PASSWORD}}
-                    MACOS_CERT_BUNDLE_BASE64=${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_BASE64}}
-                    MACOS_NOTARIZATION_PASSWORD=${{steps.gsm-secrets.outputs.MACOS_NOTARIZATION_PASSWORD}}
-                    MACOS_KEYCHAIN_PASSWORD=${{steps.gsm-secrets.outputs.MACOS_KEYCHAIN_PASSWORD}}
+                    MACOS_CERT_BUNDLE_PASSWORD=${{ secrets.MACOS_CERT_BUNDLE_PASSWORD }}
+                    MACOS_CERT_BUNDLE_BASE64=${{ secrets.MACOS_CERT_BUNDLE_BASE64 }}
+                    MACOS_KEYCHAIN_PASSWORD=${{secrets.MACOS_KEYCHAIN_PASSWORD}}
+                    MACOS_NOTARIZATION_PASSWORD=${{secrets.MACOS_NOTARIZATION_PASSWORD}}
 
                     APPLE_TEAM_ID="YQK948L752"
                     APPLE_USERNAME="opensource@apollographql.com"
+
+                    echo "Pre-check: Valid Codesigning Identify"
+                    security find-identity -v -p codesigning
+                    echo "Pre-check: Codesigning Identify"
+                    security find-identity -p codesigning
+                    echo "Pre-check: Any Identify"
+                    security find-identity
+
+                    echo "|||||||||||||||||||||||||||||||||||||||||||||"
 
                     VERSION=${{ needs.get-version.outputs.version }}
                     BINARY_PATH=target/${{ matrix.target }}/release/${{ env.archive_name }}
@@ -115,6 +124,17 @@ jobs:
 
                     echo "Verifying keychain is set up correctly..."
                     security find-identity -v -p codesigning
+
+                    echo "|||||||||||||||||||||||||||||||||||||||||||||"
+
+                    echo "Post-check: Valid Codesigning Identify"
+                    security find-identity -v -p codesigning
+                    echo "Post-check: Codesigning Identify"
+                    security find-identity -p codesigning
+                    echo "Post-check: Any Identify"
+                    security find-identity
+
+                    echo "|||||||||||||||||||||||||||||||||||||||||||||"
 
                     # Sign the binary
                     echo "Signing code (step 1)..."
