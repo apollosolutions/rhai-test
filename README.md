@@ -11,6 +11,8 @@ This project is experimental and is not a fully-supported Apollo Graph project. 
   - [Getting Started](#getting-started)
     - [Config File](#config-file)
     - [Writing your first test](#writing-your-first-test)
+    - [Running your tests](#running-your-tests)
+    - [Watch Mode](#watch-mode)
   - [Router Rhai Functions](#router-rhai-functions)
   - [Mocks](#mocks)
     - [Lifecycle Methods](#lifecycle-methods)
@@ -205,6 +207,22 @@ The most basic test you can write has an expect statement that assets something 
 test("This is my first test", ||{
     expect("a").to_be("a");
 });
+```
+
+### Running your tests
+
+To run your tests, simply run the CLI.
+
+```sh
+rhai-test
+```
+
+### Watch Mode
+
+You can pass a `--watch` flag to have the CLI watch for changes to your rhai files and re-run the tests every time it detects a change
+
+```sh
+rhai-test --watch
 ```
 
 ## Router Rhai Functions
