@@ -78,10 +78,10 @@ jobs:
 
             - name: Sign Apple Binary
               run: |
-                    MACOS_CERT_BUNDLE_PASSWORD=${{ secrets.MACOS_CERT_BUNDLE_PASSWORD }}
-                    MACOS_CERT_BUNDLE_BASE64=${{ secrets.MACOS_CERT_BUNDLE_BASE64 }}
-                    MACOS_KEYCHAIN_PASSWORD=${{secrets.MACOS_KEYCHAIN_PASSWORD}}
-                    MACOS_NOTARIZATION_PASSWORD=${{secrets.MACOS_NOTARIZATION_PASSWORD}}
+                    MACOS_CERT_BUNDLE_PASSWORD=${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_PASSWORD}}
+                    MACOS_CERT_BUNDLE_BASE64=${{steps.gsm-secrets.outputs.MACOS_CERT_BUNDLE_BASE64}}
+                    MACOS_KEYCHAIN_PASSWORD=${{steps.gsm-secrets.outputs.MACOS_KEYCHAIN_PASSWORD}}
+                    MACOS_NOTARIZATION_PASSWORD=${{steps.gsm-secrets.outputs.MACOS_NOTARIZATION_PASSWORD}}
 
                     APPLE_TEAM_ID="YQK948L752"
                     APPLE_USERNAME="opensource@apollographql.com"
