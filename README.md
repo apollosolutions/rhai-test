@@ -162,11 +162,17 @@ You can find more examples in the examples directory.
 
 ## Getting Started
 
-For now, you'll need to manually install the CLI from github releases. Once you download it, and unzip it, you can use the `rhai-test` executable as is.
+To install rhai test, run the installer:
+
+```sh
+curl -sSL https://raw.githubusercontent.com/apollosolutions/rhai-test/refs/heads/main/installers/nix/install.sh | sh
+```
+
+This will download the latest executable, store it in a bin folder, and add this folder to your path.
 
 ```sh
 # Will find config file and run your tests. Note that you will need a config file for this to work.
-./rhai-test
+rhai-test
 ```
 
 ### Config File

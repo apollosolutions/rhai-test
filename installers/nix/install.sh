@@ -225,7 +225,11 @@ download_binary_and_run_installer() {
 
     mkdir -p "$_bin_folder"
 
+    echo "Copying file to bin directory..."
+
     cp "$_dir/rhai-test" "$_bin_folder/rhai-test"
+
+    echo "Adding to path..."
 
     # Add bin folder to path
     # Check if _bin_folder is already in PATH
@@ -238,16 +242,16 @@ download_binary_and_run_installer() {
             echo "export PATH=\"\$PATH;$_bin_folder\"" >> "$HOME/.bashrc"
         else
             # For Unix-like systems
-            echo "Adding to path..."
             export PATH="$PATH:$_bin_folder"
             echo "export PATH=\"\$PATH:$_bin_folder\"" >> "$HOME/.bashrc"
             echo "export PATH=\"\$PATH:$_bin_folder\"" >> "$HOME/.zshrc"
         fi
-    else
-        echo "$_bin_folder is already in PATH."
     fi
 
     ignore rm -rf "$_dir"
+
+    echo "rhai-test installed successfully! You can now run rhai-test in your terminal."
+    echo "Please review the README for how to use this tool: https://github.com/apollosolutions/rhai-test"
 
     return "$_retval"
 }
