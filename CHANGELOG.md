@@ -1,3 +1,9 @@
+## 0.2.3 (2024-10-01)
+
+### 🚀 Features
+
+- Added --watch flag to run tester in file watch mode
+
 ## 0.2.2 (2024-09-30)
 
 ### 🚀 Features
