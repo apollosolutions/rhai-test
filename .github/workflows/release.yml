@@ -221,3 +221,12 @@ jobs:
         - run: knope release --verbose
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        - name: Update Installer version
+          run: | 
+            VERSION=$(knope get-version)
+
+            sed -i "s/PACKAGE_VERSION=\"v[0-9]*\.[0-9]*\.[0-9]*\"/PACKAGE_VERSION=\"v$VERSION\"/" installers/nix/install.sh
+
+            git add .
+            git commit -m "Update installer version to v$VERSION"
+            git push
