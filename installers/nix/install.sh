@@ -235,11 +235,13 @@ download_binary_and_run_installer() {
         if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
             # For Windows (Git Bash/Cygwin)
             export PATH="$PATH;$_bin_folder"
+            echo "export PATH=\"\$PATH;$_bin_folder\"" >> "$HOME/.bashrc"
         else
             # For Unix-like systems
             echo "Adding to path..."
             export PATH="$PATH:$_bin_folder"
-            #echo $PATH
+            echo "export PATH=\"\$PATH:$_bin_folder\"" >> "$HOME/.bashrc"
+            echo "export PATH=\"\$PATH:$_bin_folder\"" >> "$HOME/.zshrc"
         fi
     else
         echo "$_bin_folder is already in PATH."
