@@ -18,7 +18,7 @@ BINARY_DOWNLOAD_PREFIX="https://github.com/apollosolutions/rhai-test/releases/do
 # Binary version defined in root cargo.toml
 # Note: this line is built automatically
 # in build.rs. Don't touch it!
-PACKAGE_VERSION="v0.2.2"
+PACKAGE_VERSION="v0.2.999"
 
 say() {
     local green=`tput setaf 2 2>/dev/null || echo ''`
