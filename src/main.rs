@@ -11,12 +11,13 @@ use engine::logging_container::LoggingContainer;
 use engine::test_container::TestContainer;
 use engine::test_runner::TestRunner;
 use glob::glob;
+use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use rhai::{Dynamic, FnPtr, Module, ParseError, AST};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs::{self};
-use std::path::PathBuf;
-use std::process::exit;
+use std::path::{Path, PathBuf};
+use std::process::{exit, Command};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -25,9 +26,12 @@ use std::time::Instant;
 struct Args {
     #[arg(short, long, default_value = "rhai-test.config.json")]
     config: String,
+
+    #[arg(short, long, action)]
+    watch: bool,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     #[serde(rename = "testMatch")]
     test_match: Vec<String>,
@@ -39,8 +43,6 @@ pub struct Config {
 }
 
 fn main() {
-    let start_time = Instant::now();
-
     // Load config file based on arguments (or default)
     let args = Args::parse();
     let config_string = match fs::read_to_string(args.config.clone()) {
@@ -67,6 +69,50 @@ fn main() {
             exit(99);
         }
     };
+
+    if args.watch {
+        clear_screen();
+        run_tests(config.clone());
+        if let Err(error) = watch(config) {
+            let error_message = format!("Failure when watching files. Error: {}", error);
+            println!("{}", error_message.red());
+            exit(99);
+        }
+    } else {
+        run_tests(config);
+    }
+}
+
+/// Create a watcher at the configured file path and re-run the tests every time there is a file change detected
+fn watch(config: Config) -> notify::Result<()> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    let mut watcher = RecommendedWatcher::new(tx, notify::Config::default())?;
+    watcher.watch(Path::new(&config.base_path), RecursiveMode::Recursive)?;
+
+    println!("Watching for changes...");
+
+    for res in rx {
+        match res {
+            Ok(event) => {
+                if matches!(
+                    event.kind,
+                    EventKind::Modify(notify::event::ModifyKind::Data(_))
+                ) {
+                    clear_screen();
+                    run_tests(config.clone());
+                    println!("Watching for changes...");
+                }
+            }
+            Err(error) => println!("Error: {error:?}"),
+        }
+    }
+
+    Ok(())
+}
+
+/// Run the tests based on the provided config
+fn run_tests(config: Config) {
+    let start_time = Instant::now();
 
     let mut test_files: Vec<String> = Vec::new();
 
@@ -256,4 +302,13 @@ fn main() {
     };
 
     println!("Time:        {}", time_string)
+}
+
+/// Clear the terminal screen completely
+fn clear_screen() {
+    if cfg!(target_os = "windows") {
+        Command::new("cmd").args(&["/C", "cls"]).status().unwrap();
+    } else {
+        Command::new("clear").status().unwrap();
+    }
 }
