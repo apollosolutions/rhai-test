@@ -18,7 +18,7 @@ BINARY_DOWNLOAD_PREFIX="https://github.com/apollosolutions/rhai-test/releases/do
 # Binary version defined in root cargo.toml
 # Note: this line is built automatically
 # in build.rs. Don't touch it!
-PACKAGE_VERSION="v0.2.1"
+PACKAGE_VERSION="v0.2.2"
 
 say() {
     local green=`tput setaf 2 2>/dev/null || echo ''`
@@ -147,6 +147,21 @@ ignore() {
     "$@"
 }
 
+get_home_dir() {
+  if [ -n "$HOME" ]; then
+    echo "$HOME"
+  elif [ "$(uname)" = "Darwin" ] || [ "$(uname)" = "Linux" ]; then
+    echo "Error: Home directory not found on Unix-like system"
+    return 1
+  elif [ "$(uname -o)" = "Cygwin" ] || [ "$(uname -o)" = "Msys" ]; then
+    echo "Error: Home directory not found on Windows system"
+    return 1
+  else
+    echo "Error: Unsupported operating system"
+    return 1
+  fi
+}
+
 download_binary_and_run_installer() {
     downloader --check
     need_cmd mktemp
@@ -204,6 +219,31 @@ download_binary_and_run_installer() {
     ensure tar xf "$_file" --strip-components 1 -C "$_dir"
 
     local _retval=$?
+
+    local _home_dir=$(get_home_dir)
+    local _bin_folder="$_home_dir/.rhai-test/bin"
+
+    mkdir -p "$_bin_folder"
+
+    cp "$_dir/rhai-test" "$_bin_folder/rhai-test"
+
+    # Add bin folder to path
+    # Check if _bin_folder is already in PATH
+    if [[ ":$PATH:" != *":$_bin_folder:"* && "$OSTYPE" != "msys" && "$OSTYPE" != "cygwin" ]] || \
+        [[ ";$PATH;" != *";$_bin_folder;"* && ("$OSTYPE" == "msys" || "$OSTYPE" == "cygwin") ]]; then
+        # Add _bin_folder to PATH
+        if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+            # For Windows (Git Bash/Cygwin)
+            export PATH="$PATH;$_bin_folder"
+        else
+            # For Unix-like systems
+            echo "Adding to path..."
+            export PATH="$PATH:$_bin_folder"
+            #echo $PATH
+        fi
+    else
+        echo "$_bin_folder is already in PATH."
+    fi
 
     ignore rm -rf "$_dir"
 
