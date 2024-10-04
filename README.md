@@ -33,6 +33,26 @@ This project is experimental and is not a fully-supported Apollo Graph project. 
     - [Checking for error logging when a function throws an error](#checking-for-error-logging-when-a-function-throws-an-error)
     - [Testing against subgraph request](#testing-against-subgraph-request)
 
+## Getting Started
+
+To install rhai test, run the installer:
+
+```sh
+curl -sSL https://raw.githubusercontent.com/apollosolutions/rhai-test/refs/heads/main/installers/nix/install.sh | sh
+```
+
+This will download the latest executable, store it in a folder in your user home directory (`~/.rhai-test`), and add this folder to your `$PATH`.
+
+```sh
+# Will find config file and run your tests. Note that you will need a config file for this to work.
+rhai-test
+```
+
+Note: If this script does not automatically update your `$PATH`, make sure you update it to include `~/.rhai-test/bin`
+```sh
+export PATH=$PATH:~/.rhai-test/bin
+```
+
 ## Example
 
 Given this rhai script:
@@ -161,21 +181,6 @@ test("Should not throw an error when clients header are provided", ||{
 ```
 
 You can find more examples in the examples directory.
-
-## Getting Started
-
-To install rhai test, run the installer:
-
-```sh
-curl -sSL https://raw.githubusercontent.com/apollosolutions/rhai-test/refs/heads/main/installers/nix/install.sh | sh
-```
-
-This will download the latest executable, store it in a bin folder, and add this folder to your path.
-
-```sh
-# Will find config file and run your tests. Note that you will need a config file for this to work.
-rhai-test
-```
 
 ### Config File
 
