@@ -48,7 +48,7 @@ This will download the latest executable, store it in a folder in your user home
 rhai-test
 ```
 
-Note: If this script does automatically update your `$PATH`, make sure you update it to include `~/.rhai-test/bin`
+Note: If this script does not automatically update your `$PATH`, make sure you update it to include `~/.rhai-test/bin`
 ```sh
 export PATH=$PATH:~/.rhai-test/bin
 ```
