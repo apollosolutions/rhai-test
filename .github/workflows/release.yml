@@ -55,8 +55,6 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-          - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
           - target: aarch64-apple-darwin
             os: macos-latest
           - target: x86_64-pc-windows-msvc
@@ -79,10 +77,6 @@ jobs:
       - uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install MUSL tools
-        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       # Authenticate to GCP using Workload Identity Federation.
       # We set up the WI provider in the `github_actions_federation` resource in the
