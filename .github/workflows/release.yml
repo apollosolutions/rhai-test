@@ -80,6 +80,10 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install MUSL tools
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
       # Authenticate to GCP using Workload Identity Federation.
       # We set up the WI provider in the `github_actions_federation` resource in the
       # `platform-infrastructure` repository.
