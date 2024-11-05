@@ -68,6 +68,30 @@ need_ok() {
     if [ $? != 0 ]; then err "$1"; fi
 }
 
+has_required_glibc() {
+    local _ldd_version="$(ldd --version 2>&1 | head -n1)"
+    # glibc version string is inconsistent across distributions
+    # instead check if the string does not contain musl (case insensitive)
+    if echo "${_ldd_version}" | grep -iv musl >/dev/null; then
+        local _glibc_version=$(echo "${_ldd_version}" | awk 'NR==1 { print $NF }')
+        local _glibc_major_version=$(echo "${_glibc_version}" | cut -d. -f1)
+        local _glibc_min_version=$(echo "${_glibc_version}" | cut -d. -f2)
+        local _min_major_version=2
+        local _min_minor_version=17
+        if [ "${_glibc_major_version}" -gt "${_min_major_version}" ] \
+            || { [ "${_glibc_major_version}" -eq "${_min_major_version}" ] \
+            && [ "${_glibc_min_version}" -ge "${_min_minor_version}" ]; }; then
+            return 0
+        else
+            say "This operating system needs glibc >= ${_min_major_version}.${_min_minor_version}, but only has ${_libc_version} installed."
+        fi
+    else
+        say "This operating system does not support dynamic linking to glibc."
+    fi
+
+    return 1
+}
+
 get_architecture() {
     local _ostype="$(uname -s)"
     local _cputype="$(uname -m)"
@@ -97,7 +121,7 @@ get_architecture() {
                     err "Unsupported platform: aarch64-$_ostype"
                 fi
 
-                say "Downloading musl binary that does not include \`rover supergraph compose\`."
+                say "Downloading musl binary"
             fi
             ;;
 
@@ -175,7 +199,7 @@ download_binary_and_run_installer() {
     need_cmd awk
     need_cmd cut
 
-    # if $VERSION isn't provided or has 0 length, use version from Rover cargo.toml
+    # if $VERSION isn't provided or has 0 length, use version from Rhai-test cargo.toml
     # ${VERSION:-} checks if version exists, and if doesn't uses the default
     # which is after the :-, which in this case is empty. -z checks for empty str
     if [ -z ${VERSION:-} ]; then
@@ -201,7 +225,6 @@ download_binary_and_run_installer() {
     local _url="$BINARY_DOWNLOAD_PREFIX/$DOWNLOAD_VERSION/${_tardir}.tgz"
     local _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t rhai-test)"
     local _file="$_dir/input.tgz"
-    local _rover="$_dir/rhai-test$_ext"
 
     say "downloading rhai-test from $_url" 1>&2
 
