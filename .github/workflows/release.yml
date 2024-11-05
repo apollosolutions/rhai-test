@@ -73,6 +73,8 @@ jobs:
           ref: ${{ needs.prepare-release.outputs.sha }}
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: ${{ matrix.target }}
 
       - uses: arduino/setup-protoc@v3
         with:
