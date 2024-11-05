@@ -1,11 +1,3 @@
-## 0.2.4 (2024-11-05)
-
-### 🚀 Features
-
-#### Fix install script issue on linux, add support for linux-musl
-
-Fixed issue in install script that would result in "has_required_glibc: command not found" error and then it attempting to install linux-musl which did not exist.
-
 ## 0.2.3 (2024-10-01)
 
 ### 🚀 Features
