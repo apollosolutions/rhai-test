@@ -39,3 +39,5 @@ jobs:
 
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
+        env:
+          V8_FROM_SOURCE: "true"
