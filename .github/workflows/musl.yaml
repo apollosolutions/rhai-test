@@ -28,18 +28,24 @@ jobs:
           packages: >
             build-base
             musl-dev
+            rustup
 
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare-release.outputs.sha }}
 
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          target: ${{ matrix.target }}
+      #- uses: actions-rust-lang/setup-rust-toolchain@v1
+      #  with:
+      #    target: ${{ matrix.target }}
 
-      - uses: arduino/setup-protoc@v3
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      #- uses: arduino/setup-protoc@v3
+      #  with:
+      #    repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Rust stable toolchain via rustup
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        run: rustup-init --target ${{ matrix.target }} --default-toolchain stable --profile minimal -y
+        shell: alpine.sh {0}
 
       #- name: Install MUSL tools
       #  if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
