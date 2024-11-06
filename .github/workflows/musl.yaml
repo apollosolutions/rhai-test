@@ -58,7 +58,8 @@ jobs:
       #  run: su root -c "apk update && apk add musl-dev build-base"
       #  shell: alpine.sh {0}
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          cargo build --release --target ${{ matrix.target }}
         shell: alpine.sh {0}
-        #env:
-        #  V8_FROM_SOURCE: ${{ matrix.target == 'x86_64-unknown-linux-musl' && 'true' || 'false' }}
+        env:
+          V8_FROM_SOURCE: ${{ matrix.target == 'x86_64-unknown-linux-musl' && 'true' || 'false' }}
