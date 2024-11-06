@@ -1,0 +1,41 @@
+name: Build for MUSL
+
+on: workflow_dispatch
+
+defaults:
+  run:
+    # necessary for windows
+    shell: bash
+
+jobs:
+  build-artifacts:
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      archive_name: rhai-test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-release.outputs.sha }}
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: ${{ matrix.target }}
+
+      - uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install MUSL tools
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
