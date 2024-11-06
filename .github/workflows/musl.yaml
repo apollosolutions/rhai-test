@@ -44,7 +44,7 @@ jobs:
 
       - name: Install MUSL tools
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        run: apk update && apk add musl-dev build-base
+        run: sudo apk update && sudo apk add musl-dev build-base
         shell: alpine.sh {0}
 
       - name: Build
