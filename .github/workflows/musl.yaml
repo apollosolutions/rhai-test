@@ -29,6 +29,7 @@ jobs:
             build-base
             musl-dev
             rustup
+            cmake
 
       - uses: actions/checkout@v4
         with:
