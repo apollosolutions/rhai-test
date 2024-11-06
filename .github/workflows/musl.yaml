@@ -30,6 +30,8 @@ jobs:
             musl-dev
             rustup
             cmake
+            python3
+            curl
 
       - uses: actions/checkout@v4
         with:
