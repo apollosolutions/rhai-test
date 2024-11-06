@@ -21,6 +21,9 @@ jobs:
     env:
       archive_name: rhai-test
     steps:
+      - uses: jirutka/setup-alpine@v1
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.prepare-release.outputs.sha }}
@@ -39,5 +42,5 @@ jobs:
 
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
-        env:
-          V8_FROM_SOURCE: "true"
+        #env:
+        #  V8_FROM_SOURCE: ${{ matrix.target == 'x86_64-unknown-linux-musl' && 'true' || 'false' }}
