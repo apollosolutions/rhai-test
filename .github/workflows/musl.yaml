@@ -23,6 +23,8 @@ jobs:
     steps:
       - uses: jirutka/setup-alpine@v1
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        with:
+          shell-name: alpine.sh
 
       - uses: actions/checkout@v4
         with:
@@ -39,8 +41,10 @@ jobs:
       - name: Install MUSL tools
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
         run: sudo apt-get update && sudo apt-get install -y musl-tools
+        shell: alpine.sh {0}
 
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
+        shell: alpine.sh {0}
         #env:
         #  V8_FROM_SOURCE: ${{ matrix.target == 'x86_64-unknown-linux-musl' && 'true' || 'false' }}
