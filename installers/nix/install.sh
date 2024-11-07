@@ -77,7 +77,7 @@ has_required_glibc() {
         local _glibc_major_version=$(echo "${_glibc_version}" | cut -d. -f1)
         local _glibc_min_version=$(echo "${_glibc_version}" | cut -d. -f2)
         local _min_major_version=2
-        local _min_minor_version=17
+        local _min_minor_version=35
         if [ "${_glibc_major_version}" -gt "${_min_major_version}" ] \
             || { [ "${_glibc_major_version}" -eq "${_min_major_version}" ] \
             && [ "${_glibc_min_version}" -ge "${_min_minor_version}" ]; }; then
@@ -114,14 +114,7 @@ get_architecture() {
             if has_required_glibc; then
                 local _ostype=unknown-linux-gnu
             else
-                local _ostype=unknown-linux-musl
-
-                # We do not currently release builds for aarch64-unknown-linux-musl
-                if [ "$_cputype" = aarch64 ]; then
-                    err "Unsupported platform: aarch64-$_ostype"
-                fi
-
-                say "Downloading musl binary"
+                err "glibc library version was not sufficiant and musl is not supported. Please upgrade your glibc version."
             fi
             ;;
 
