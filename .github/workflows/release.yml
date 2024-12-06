@@ -234,4 +234,4 @@ jobs:
 
           git add .
           git commit -m "Update installer version to v$VERSION"
-          git push
+          git push origin main
