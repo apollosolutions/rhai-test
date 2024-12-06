@@ -1,0 +1,5 @@
+name: rhai-test
+description: `rhai-test` enables you to effectively test Rhai scripts for use within the Apollo Router.
+languages:
+  - "Rust"
+  - "Rhai"
