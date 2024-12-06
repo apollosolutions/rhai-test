@@ -1,3 +1,14 @@
+## 0.2.5 (2024-12-06)
+
+### 🚀 Features
+
+- Added support for URI type to be passed to expect function
+
+### 🐛 Fixes
+
+- bug: CLI was returning a 0 exit code on test failures
+- bug: test suites were not being counted if they had a syntax error
+
 ## 0.2.4 (2024-11-05)
 
 ### 🚀 Features
