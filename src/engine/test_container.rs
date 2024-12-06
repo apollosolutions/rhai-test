@@ -55,17 +55,27 @@ impl TestContainer {
         }
     }
 
-    pub fn add_test(&mut self, name: &str, func: FnPtr, file_path: &str) {
-        self.tests
-            .push(Test::new(name.to_string(), func, file_path.to_string()));
+    pub fn add_suite(&mut self, file_path: &str) {
         if !self.test_suites.contains_key(file_path) {
             self.test_suites
                 .insert(file_path.to_string(), TestSuite::new(&file_path));
         }
     }
 
+    pub fn add_test(&mut self, name: &str, func: FnPtr, file_path: &str) {
+        self.tests
+            .push(Test::new(name.to_string(), func, file_path.to_string()));
+    }
+
     pub fn get_tests(&self) -> &Vec<Test> {
         &self.tests
+    }
+
+    pub fn has_failed_suites(&self) -> bool {
+        self.test_suites
+            .iter()
+            .find(|(_, suite)| !suite.is_passed)
+            .is_some()
     }
 
     pub fn fail_suite(&mut self, path: &str) {

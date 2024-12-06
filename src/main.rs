@@ -72,14 +72,14 @@ fn main() {
 
     if args.watch {
         clear_screen();
-        run_tests(config.clone());
+        run_tests(config.clone(), true);
         if let Err(error) = watch(config) {
             let error_message = format!("Failure when watching files. Error: {}", error);
             println!("{}", error_message.red());
             exit(99);
         }
     } else {
-        run_tests(config);
+        run_tests(config, false);
     }
 }
 
@@ -99,7 +99,7 @@ fn watch(config: Config) -> notify::Result<()> {
                     EventKind::Modify(notify::event::ModifyKind::Data(_))
                 ) {
                     clear_screen();
-                    run_tests(config.clone());
+                    run_tests(config.clone(), true);
                     println!("Watching for changes...");
                 }
             }
@@ -111,7 +111,7 @@ fn watch(config: Config) -> notify::Result<()> {
 }
 
 /// Run the tests based on the provided config
-fn run_tests(config: Config) {
+fn run_tests(config: Config, is_watch_mode: bool) {
     let start_time = Instant::now();
 
     let mut test_files: Vec<String> = Vec::new();
@@ -191,6 +191,9 @@ fn run_tests(config: Config) {
         let cloned_logging_container = logging_container.clone();
         let cloned_path = path.clone();
 
+        // Add the test suite
+        cloned_container.lock().unwrap().add_suite(&path);
+
         // Create and register our test() function
         let test = move |test_name: &str, func: FnPtr| {
             cloned_container
@@ -261,6 +264,8 @@ fn run_tests(config: Config) {
                             )
                             .red()
                         );
+                        let mut container = test_container.lock().unwrap();
+                        container.fail_suite(&path);
                     }
                 }
             }
@@ -279,6 +284,8 @@ fn run_tests(config: Config) {
                     )
                     .red()
                 );
+                let mut container = test_container.lock().unwrap();
+                container.fail_suite(&path);
             }
         }
     }
@@ -301,7 +308,11 @@ fn run_tests(config: Config) {
         format!("{:.2} s", elapsed_time.as_secs_f64())
     };
 
-    println!("Time:        {}", time_string)
+    println!("Time:        {}", time_string);
+
+    if !is_watch_mode && test_container.lock().unwrap().has_failed_suites() {
+        exit(1);
+    }
 }
 
 /// Clear the terminal screen completely
