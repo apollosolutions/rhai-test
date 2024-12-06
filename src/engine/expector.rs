@@ -6,6 +6,7 @@ use super::{
 use crate::coverage_reporting::test_coverage_container::TestCoverageContainer;
 use crate::engine::engine::create_engine;
 use crate::Config;
+use http::Uri;
 use regex::Regex;
 use rhai::{Dynamic, EvalAltResult, FnPtr, ImmutableString, Module, AST};
 use std::{
@@ -42,6 +43,8 @@ impl ExpectedValue {
             Ok(ExpectedValue::Nothing(n))
         } else if let Some(l) = dynamic.clone().try_cast::<LogLevel>() {
             Ok(ExpectedValue::LogLevel(l))
+        } else if let Some(u) = dynamic.clone().try_cast::<Uri>() {
+            Ok(ExpectedValue::String(u.to_string()))
         } else {
             Err(format!(
                 "Unsupported type provided to expect() or it's child functions: {}",
