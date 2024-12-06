@@ -1,5 +1,5 @@
 name: rhai-test
-description: "\`rhai-test\` is an experimental CLI tool for running unit tests against your Router rhai scripts. It allows you to write unit tests in Rhai that feel familiar and natural, and provides not only the mechanism to write and run the tests, but also utilities for mocking Apollo-provided functionality that allow you to fully test against the Router lifecycle."
+description: \`rhai-test\` is an experimental CLI tool for running unit tests against your Router rhai scripts. It allows you to write unit tests in Rhai that feel familiar and natural, and provides not only the mechanism to write and run the tests, but also utilities for mocking Apollo-provided functionality that allow you to fully test against the Router lifecycle.
 tags:
   - "Rust"
   - "Rhai"
