@@ -5,8 +5,20 @@ This is an experimental CLI tool for running unit tests against your Router rhai
 ## ⚠️ Disclaimer ⚠️
 This project is experimental and is not a fully-supported Apollo Graph project. We may not respond to issues and pull requests at this time.
 
+## Rhai Version Policy
+
+`rhai-test` tracks the version of the [Rhai scripting engine](https://rhai.rs/) that is bundled with the latest stable [Apollo Router](https://github.com/apollographql/router) release. This ensures that scripts validated by `rhai-test` behave the same way they do when running in Router.
+
+| rhai-test version | Rhai version | Apollo Router version |
+|---|---|---|
+| 0.2.5+ | 1.23.6 | v2.12.0 |
+| 0.2.5 | 1.17.1 | — |
+
+When a new Router release ships with an updated Rhai version, `rhai-test` should be updated to match. See the [Apollo Router release notes](https://github.com/apollographql/router/releases) for details on which Rhai version each Router release includes.
+
 - [rhai-test](#rhai-test)
   - [⚠️ Disclaimer ⚠️](#️-disclaimer-️)
+  - [Rhai Version Policy](#rhai-version-policy)
   - [Example](#example)
   - [Getting Started](#getting-started)
     - [Config File](#config-file)

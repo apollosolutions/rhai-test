@@ -17,7 +17,7 @@ glob = "0.3.1"
 http = "0.2"
 notify = "6.1.1"
 regex = "1.10.6"
-rhai = { version = "1.17.1", features = ["metadata"] }
+rhai = { version = "1.23.6", features = ["metadata"] }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 tabled = { version = "0.16.0", features = ["ansi"]}
