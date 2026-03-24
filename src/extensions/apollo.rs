@@ -1,17 +1,8 @@
 use crate::engine::logging_container::{LogLevel, LoggingContainer};
 use apollo_router::_private::rhai as ApolloRhai;
-use apollo_router::_private::rhai::engine::SharedMut;
-use apollo_router::_private::rhai::{execution, router, subgraph, supergraph};
-use apollo_router::if_subgraph;
-use apollo_router::register_rhai_interface;
-use apollo_router::register_rhai_router_interface;
 use apollo_router::Context;
-use apollo_router::_private::rhai::engine::OptionDance;
-use apollo_router::graphql::Request;
 use http::HeaderMap;
 use http::Method;
-use http::StatusCode;
-use http::Uri;
 use rhai::Shared;
 use rhai::{plugin::*, Map};
 use rhai::{Engine, FnPtr};
@@ -87,8 +78,7 @@ pub fn register_rhai_functions_and_types(
             .add_log(message.to_string(), LogLevel::ERROR);
     });
 
-    register_rhai_router_interface!(engine, router);
-    register_rhai_interface!(engine, supergraph, execution, subgraph);
+    ApolloRhai::engine::registration::register(engine);
 
     let mut global_variables = Map::new();
     global_variables.insert("APOLLO_SDL".into(), "".to_string().into()); // TODO: Allow SDL to be inserted via helper methods?
@@ -150,7 +140,7 @@ mod apollo_mocks {
     use apollo_router::_private::rhai::router;
     use apollo_router::_private::rhai::subgraph;
     use apollo_router::_private::rhai::supergraph;
-    use std::sync::Mutex;
+    use parking_lot::Mutex;
 
     #[derive(Debug, Clone)]
     pub struct SupergraphService {
@@ -249,7 +239,7 @@ mod apollo_mocks {
     pub(crate) fn get_subgraph_service_request(
         supergraph_request: Arc<Mutex<Option<apollo_router::services::supergraph::Request>>>,
     ) -> Shared<Mutex<std::option::Option<apollo_router::services::subgraph::Request>>> {
-        let request_guard = supergraph_request.lock().unwrap();
+        let request_guard = supergraph_request.lock();
         let raw_supergraph_request = &request_guard.as_ref().unwrap().supergraph_request;
         let mut new_supergraph_request = http::Request::builder()
             .uri(raw_supergraph_request.uri().clone())
