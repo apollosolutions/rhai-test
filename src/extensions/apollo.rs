@@ -1,10 +1,12 @@
 use crate::engine::logging_container::{LogLevel, LoggingContainer};
 use apollo_router::_private::rhai as ApolloRhai;
+use apollo_router::plugins::rhai::engine::{OptionDance, SharedMut};
 use apollo_router::Context;
+use apollo_router::services::supergraph;
 use http::HeaderMap;
 use http::Method;
 use rhai::Shared;
-use rhai::{plugin::*, Map};
+use rhai::{plugin::*, Dynamic, EvalAltResult, Map};
 use rhai::{Engine, FnPtr};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -80,6 +82,10 @@ pub fn register_rhai_functions_and_types(
 
     ApolloRhai::engine::registration::register(engine);
 
+    // Pipeline `services::supergraph::Response` (also `execution::Response`) is distinct from the
+    // Rhai wrapper `RhaiSupergraphResponse`; the stock plugin registers headers only on the latter.
+    register_pipeline_response_headers(engine);
+
     let mut global_variables = Map::new();
     global_variables.insert("APOLLO_SDL".into(), "".to_string().into()); // TODO: Allow SDL to be inserted via helper methods?
     global_variables.insert("APOLLO_START".into(), Instant::now().into());
@@ -119,6 +125,20 @@ pub fn register_rhai_functions_and_types(
     });
 }
 
+/// Expose HTTP headers on the pipeline supergraph/execution response type used by mocks.
+fn register_pipeline_response_headers(engine: &mut Engine) {
+    engine.register_get_set(
+        "headers",
+        |obj: &mut SharedMut<supergraph::Response>| -> Result<HeaderMap, Box<EvalAltResult>> {
+            Ok(obj.with_mut(|response| response.response.headers().clone()))
+        },
+        |obj: &mut SharedMut<supergraph::Response>, headers: HeaderMap| {
+            obj.with_mut(|response| *response.response.headers_mut() = headers);
+            Ok(())
+        },
+    );
+}
+
 /// Register our apollo_mocks interface
 pub fn register_mocking_functions(engine: &mut Engine) {
     engine
@@ -140,6 +160,7 @@ mod apollo_mocks {
     use apollo_router::_private::rhai::router;
     use apollo_router::_private::rhai::subgraph;
     use apollo_router::_private::rhai::supergraph;
+    use apollo_router::plugins::rhai::engine::{RhaiRouterFirstRequest, RhaiRouterResponse};
     use parking_lot::Mutex;
 
     #[derive(Debug, Clone)]
@@ -170,25 +191,35 @@ mod apollo_mocks {
 
     #[rhai_fn()]
     pub(crate) fn get_router_service_request(
-    ) -> Shared<Mutex<std::option::Option<apollo_router::services::router::Request>>> {
+    ) -> Shared<Mutex<std::option::Option<RhaiRouterFirstRequest>>> {
         let request = router::Request::fake_builder()
             .method(Method::POST)
             .context(Context::new())
             .build()
             .unwrap();
-        let shared_request = Arc::new(Mutex::new(Some(request)));
-        shared_request
+        let context = request.context.clone();
+        let http_request = request.router_request.map(|_| ());
+        let first = RhaiRouterFirstRequest {
+            context,
+            request: http_request,
+        };
+        Arc::new(Mutex::new(Some(first)))
     }
 
     #[rhai_fn()]
     pub(crate) fn get_router_service_response(
-    ) -> Shared<Mutex<std::option::Option<apollo_router::services::router::Response>>> {
+    ) -> Shared<Mutex<std::option::Option<RhaiRouterResponse>>> {
         let response = router::Response::fake_builder()
             .context(Context::new())
             .build()
             .unwrap();
-        let shared_response = Arc::new(Mutex::new(Some(response)));
-        shared_response
+        let context = response.context.clone();
+        let http_response = response.response.map(|_| ());
+        let first = RhaiRouterResponse {
+            context,
+            response: http_response,
+        };
+        Arc::new(Mutex::new(Some(first)))
     }
 
     #[rhai_fn()]

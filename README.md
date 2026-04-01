@@ -53,7 +53,15 @@ To install rhai test, run the installer:
 curl -sSL https://raw.githubusercontent.com/apollosolutions/rhai-test/refs/heads/main/installers/nix/install.sh | sh
 ```
 
-This will download the latest executable, store it in a folder in your user home directory (`~/.rhai-test`), and add this folder to your `$PATH`.
+This will download a **release** binary from GitHub Releases (see the installer’s `PACKAGE_VERSION`), store it under `~/.rhai-test`, and add `~/.rhai-test/bin` to your `$PATH`.
+
+To install a specific published version, set `VERSION` when you run the script (must match a [release tag](https://github.com/apollosolutions/rhai-test/releases)):
+
+```sh
+curl -sSL https://raw.githubusercontent.com/apollosolutions/rhai-test/refs/heads/main/installers/nix/install.sh | VERSION="v0.2.5" sh
+```
+
+The installer does **not** build from a git branch; for unreleased or branch changes, build from source locally (see below).
 
 ```sh
 # Will find config file and run your tests. Note that you will need a config file for this to work.
@@ -63,6 +71,54 @@ rhai-test
 Note: If this script does not automatically update your `$PATH`, make sure you update it to include `~/.rhai-test/bin`
 ```sh
 export PATH=$PATH:~/.rhai-test/bin
+```
+
+### Building from source (unreleased / branch changes)
+
+Use this when you need a build that is not published as a GitHub Release yet.
+
+Prerequisites:
+
+- **Rust toolchain (Cargo)** — install via [rustup](https://rustup.rs/):
+
+```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+- **Git** — to clone and checkout a branch.
+
+```sh
+git clone https://github.com/apollosolutions/rhai-test.git
+cd rhai-test
+git checkout <your-branch>   # optional
+cargo build --release
+./target/release/rhai-test
+```
+
+### Uninstall
+
+To uninstall `rhai-test`, remove the install directory and undo the PATH changes made by the installer.
+
+```sh
+rm -rf ~/.rhai-test
+```
+
+The installer appends `~/.rhai-test/bin` to your shell config. Remove the line below from `~/.zshrc` and/or `~/.bashrc` if present:
+
+```sh
+export PATH="$PATH:~/.rhai-test/bin"
+```
+
+Then restart your shell:
+
+```sh
+exec zsh
+```
+
+Verify it is uninstalled:
+
+```sh
+command -v rhai-test || echo "rhai-test not found"
 ```
 
 ## Example

@@ -6,7 +6,7 @@ use super::{
 use crate::coverage_reporting::test_coverage_container::TestCoverageContainer;
 use crate::engine::engine::create_engine;
 use crate::Config;
-use http::Uri;
+use http::{HeaderMap, Uri};
 use regex::Regex;
 use rhai::{Dynamic, EvalAltResult, FnPtr, ImmutableString, Module, AST};
 use std::{
@@ -23,34 +23,38 @@ pub enum ExpectedValue {
     Int(i64),
     Function(FnPtr),
     Nothing(()),
+    /// Reserved for future strict parsing; currently `from_dynamic` maps unknowns to [`Present`].
+    #[allow(dead_code)]
     Error(String),
     LogLevel(LogLevel),
+    /// Rhai `HeaderMap` (e.g. from `request.headers`).
+    HeaderMap(HeaderMap),
+    /// Any other Rhai value (timestamps, shared mocks, etc.) — supports `to_exist` / `not().to_exist`.
+    Present,
 }
 
 /// This defines how to parse/cast the value into the enum or provide an error that it's an unsupported type
 /// When adding new types, make sure to also update the PartialEq definition below so we know how to compare values
 impl ExpectedValue {
-    pub fn from_dynamic(dynamic: &Dynamic) -> Result<Self, String> {
+    pub fn from_dynamic(dynamic: &Dynamic) -> Self {
         if let Some(s) = dynamic.clone().try_cast::<ImmutableString>() {
-            Ok(ExpectedValue::String(s.to_string()))
+            ExpectedValue::String(s.to_string())
         } else if let Some(b) = dynamic.clone().try_cast::<bool>() {
-            Ok(ExpectedValue::Bool(b))
+            ExpectedValue::Bool(b)
         } else if let Some(i) = dynamic.clone().try_cast::<i64>() {
-            Ok(ExpectedValue::Int(i))
+            ExpectedValue::Int(i)
         } else if let Some(f) = dynamic.clone().try_cast::<FnPtr>() {
-            Ok(ExpectedValue::Function(f))
+            ExpectedValue::Function(f)
         } else if let Some(n) = dynamic.clone().try_cast::<()>() {
-            Ok(ExpectedValue::Nothing(n))
+            ExpectedValue::Nothing(n)
         } else if let Some(l) = dynamic.clone().try_cast::<LogLevel>() {
-            Ok(ExpectedValue::LogLevel(l))
+            ExpectedValue::LogLevel(l)
         } else if let Some(u) = dynamic.clone().try_cast::<Uri>() {
-            Ok(ExpectedValue::String(u.to_string()))
+            ExpectedValue::String(u.to_string())
+        } else if let Some(h) = dynamic.clone().try_cast::<HeaderMap>() {
+            ExpectedValue::HeaderMap(h)
         } else {
-            Err(format!(
-                "Unsupported type provided to expect() or it's child functions: {}",
-                dynamic.type_name()
-            )
-            .into())
+            ExpectedValue::Present
         }
     }
 }
@@ -66,6 +70,7 @@ impl PartialEq for ExpectedValue {
                 f1.to_string() == f2.to_string()
             }
             (ExpectedValue::Nothing(n1), ExpectedValue::Nothing(n2)) => n1 == n2,
+            (ExpectedValue::HeaderMap(h1), ExpectedValue::HeaderMap(h2)) => h1 == h2,
             _ => false,
         }
     }
@@ -89,10 +94,7 @@ pub struct Expector {
 impl Expector {
     /// We're going to attempt to parse a provided value into an expector. If it's an invalid value, it'll be given the Error enum type that we'll handle later in the expector functions.
     pub fn new(value: Dynamic) -> Self {
-        let value_from_dynamic = match ExpectedValue::from_dynamic(&value) {
-            Ok(val) => val,
-            Err(message) => ExpectedValue::Error(message),
-        };
+        let value_from_dynamic = ExpectedValue::from_dynamic(&value);
 
         Self {
             value: value_from_dynamic,
@@ -142,18 +144,8 @@ impl Expector {
             return ();
         }
 
-        let condition = match &ExpectedValue::from_dynamic(&expected) {
-            Ok(val) => &self.value == val,
-            Err(error) => {
-                self.test_container
-                    .as_mut()
-                    .unwrap()
-                    .lock()
-                    .unwrap()
-                    .add_expect_result(Result::Err(error.clone()));
-                return ();
-            }
-        };
+        let expected_val = ExpectedValue::from_dynamic(&expected);
+        let condition = &self.value == &expected_val;
 
         if !condition && !self.negative {
             let error = format!(
