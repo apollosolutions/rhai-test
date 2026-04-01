@@ -47,31 +47,56 @@ When a new Router release ships with an updated Rhai version, `rhai-test` should
 
 ## Getting Started
 
-To install rhai test, run the installer:
+### Install from GitHub Releases
+
+The installer downloads a published **GitHub Release** asset. The script on `main` embeds a `PACKAGE_VERSION` (for example `v0.2.5`); that tag must exist on [Releases](https://github.com/apollosolutions/rhai-test/releases) or the download will fail.
 
 ```sh
 curl -sSL https://raw.githubusercontent.com/apollosolutions/rhai-test/refs/heads/main/installers/nix/install.sh | sh
 ```
 
-This will download a **release** binary from GitHub Releases (see the installer’s `PACKAGE_VERSION`), store it under `~/.rhai-test`, and add `~/.rhai-test/bin` to your `$PATH`.
+This installs the binary under `~/.rhai-test/bin` and tries to append that directory to your `PATH` (for example in `~/.zshrc` / `~/.bashrc`). Open a **new terminal** (or `exec "$SHELL" -l`) so `PATH` picks up the change.
 
-To install a specific published version, set `VERSION` when you run the script (must match a [release tag](https://github.com/apollosolutions/rhai-test/releases)):
+If `rhai-test` is not found, add it manually:
+
+```sh
+export PATH="$PATH:$HOME/.rhai-test/bin"
+```
+
+Confirm the CLI is on your `PATH`:
+
+```sh
+rhai-test --version
+```
+
+To install a **specific** published version, set `VERSION` to a release tag (for example `v0.2.5`):
 
 ```sh
 curl -sSL https://raw.githubusercontent.com/apollosolutions/rhai-test/refs/heads/main/installers/nix/install.sh | VERSION="v0.2.5" sh
 ```
 
-The installer does **not** build from a git branch; for unreleased or branch changes, build from source locally (see below).
+The installer does **not** build from a git branch. For unreleased changes, build [from source](#building-from-source-unreleased--branch-changes) instead.
+
+### Run your first tests
+
+`rhai-test` expects a config file in the current directory (by default `rhai-test.config.json`). From a project that contains your Rhai sources and tests:
+
+1. Add a config file (see [Config File](#config-file) for all options). Minimal example:
+
+```json
+{
+  "testMatch": ["**/*.test.rhai"],
+  "basePath": "."
+}
+```
+
+2. Run the test runner:
 
 ```sh
-# Will find config file and run your tests. Note that you will need a config file for this to work.
 rhai-test
 ```
 
-Note: If this script does not automatically update your `$PATH`, make sure you update it to include `~/.rhai-test/bin`
-```sh
-export PATH=$PATH:~/.rhai-test/bin
-```
+If you cloned this repository and want to run its example suite, point `basePath` at `examples` (see the [example config](#config-file) below).
 
 ### Building from source (unreleased / branch changes)
 
@@ -120,6 +145,15 @@ Verify it is uninstalled:
 ```sh
 command -v rhai-test || echo "rhai-test not found"
 ```
+
+### Releasing (maintainers)
+
+Merging a pull request into `main` **does not** automatically publish a GitHub Release or upload binaries. When you are ready to ship:
+
+1. Use repository automation: open **Actions → Build and Release**, then **Run workflow** (`workflow_dispatch`). That pipeline runs tests, bumps the version with [Knope](https://knope.dev/), builds archives for Linux (x86_64), macOS (Apple Silicon), and Windows, creates the GitHub Release with those assets, and commits an update to `installers/nix/install.sh` so `PACKAGE_VERSION` matches the new tag.
+2. After it finishes, confirm the new tag appears under [Releases](https://github.com/apollosolutions/rhai-test/releases) and that the default [install steps](#install-from-github-releases) work on your machine.
+
+Until a release exists for the version pinned in `install.sh` on `main`, the default one-liner install will fail at the download step—run the release workflow after merging version bumps, or install from source.
 
 ## Example
 
