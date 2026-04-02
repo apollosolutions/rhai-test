@@ -3,6 +3,9 @@ name: Pull Request Workflow
 on:
   pull_request:
     types: [opened, synchronize]
+  push:
+    branches:
+      - main
 
 jobs:
   build:

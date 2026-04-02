@@ -1,5 +1,9 @@
 name: Build and Release
 
+# Manual release only: merging to `main` does not create a GitHub Release by itself.
+# When you are ready to ship, run this workflow from the Actions tab (workflow_dispatch).
+# It bumps the version via Knope, builds per-platform archives, publishes a GitHub Release,
+# and commits an `installers/nix/install.sh` PACKAGE_VERSION update to `main`.
 on: workflow_dispatch
 
 defaults:
