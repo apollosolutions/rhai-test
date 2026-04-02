@@ -1,4 +1,4 @@
-fn rename_header(request){
+fn subgraph_request(request){
     let header_map = #{
         "assetid": "original_assetid"
     };

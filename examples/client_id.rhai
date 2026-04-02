@@ -1,4 +1,4 @@
-fn process_request(request) {
+fn supergraph_request(request) {
     log_info("processing request");
     let valid_client_names = ["apollo-client", "retail-website"];
 
