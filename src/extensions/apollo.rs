@@ -1,6 +1,8 @@
 use crate::engine::logging_container::{LogLevel, LoggingContainer};
 use apollo_router::_private::rhai as ApolloRhai;
-use apollo_router::plugins::rhai::engine::{OptionDance, SharedMut};
+use apollo_router::plugins::rhai::engine::{
+    OptionDance, RhaiRouterFirstRequest, RhaiRouterResponse, SharedMut,
+};
 use apollo_router::Context;
 use apollo_router::services::supergraph;
 use http::HeaderMap;
@@ -125,8 +127,13 @@ pub fn register_rhai_functions_and_types(
     });
 }
 
-/// Expose HTTP headers on the pipeline supergraph/execution response type used by mocks.
+/// Expose HTTP headers on pipeline request/response types used by mocks.
+///
+/// `ApolloRhai::engine::registration::register` registers headers on Rhai wrapper types
+/// (e.g., `RhaiSupergraphResponse`), but our mocks return the underlying pipeline types
+/// (e.g., `services::supergraph::Response`). This function bridges that gap.
 fn register_pipeline_response_headers(engine: &mut Engine) {
+    // Supergraph Response
     engine.register_get_set(
         "headers",
         |obj: &mut SharedMut<supergraph::Response>| -> Result<HeaderMap, Box<EvalAltResult>> {
@@ -134,6 +141,30 @@ fn register_pipeline_response_headers(engine: &mut Engine) {
         },
         |obj: &mut SharedMut<supergraph::Response>, headers: HeaderMap| {
             obj.with_mut(|response| *response.response.headers_mut() = headers);
+            Ok(())
+        },
+    );
+
+    // Router Request
+    engine.register_get_set(
+        "headers",
+        |obj: &mut SharedMut<RhaiRouterFirstRequest>| -> Result<HeaderMap, Box<EvalAltResult>> {
+            Ok(obj.with_mut(|req| req.request.headers().clone()))
+        },
+        |obj: &mut SharedMut<RhaiRouterFirstRequest>, headers: HeaderMap| {
+            obj.with_mut(|req| *req.request.headers_mut() = headers);
+            Ok(())
+        },
+    );
+
+    // Router Response
+    engine.register_get_set(
+        "headers",
+        |obj: &mut SharedMut<RhaiRouterResponse>| -> Result<HeaderMap, Box<EvalAltResult>> {
+            Ok(obj.with_mut(|resp| resp.response.headers().clone()))
+        },
+        |obj: &mut SharedMut<RhaiRouterResponse>, headers: HeaderMap| {
+            obj.with_mut(|resp| *resp.response.headers_mut() = headers);
             Ok(())
         },
     );

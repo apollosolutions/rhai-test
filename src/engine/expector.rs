@@ -15,7 +15,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-/// Represents all the different types of values that can be passed to an expect() or one of it's functions
+/// Represents all the different types of values that can be passed to an expect() or one of its functions
 #[derive(Debug, Clone)]
 pub enum ExpectedValue {
     String(String),
@@ -23,9 +23,6 @@ pub enum ExpectedValue {
     Int(i64),
     Function(FnPtr),
     Nothing(()),
-    /// Reserved for future strict parsing; currently `from_dynamic` maps unknowns to [`Present`].
-    #[allow(dead_code)]
-    Error(String),
     LogLevel(LogLevel),
     /// Rhai `HeaderMap` (e.g. from `request.headers`).
     HeaderMap(HeaderMap),
@@ -134,16 +131,6 @@ impl Expector {
 
     /// Checks if two values are equal
     pub fn to_be(&mut self, expected: Dynamic) {
-        if let ExpectedValue::Error(err_msg) = &self.value {
-            self.test_container
-                .as_mut()
-                .unwrap()
-                .lock()
-                .unwrap()
-                .add_expect_result(Result::Err(err_msg.clone()));
-            return ();
-        }
-
         let expected_val = ExpectedValue::from_dynamic(&expected);
         let condition = &self.value == &expected_val;
 
@@ -183,16 +170,6 @@ impl Expector {
 
     /// Checks if a value exists (effectively, it's not ())
     pub fn to_exist(&mut self) {
-        if let ExpectedValue::Error(err_msg) = &self.value {
-            self.test_container
-                .as_mut()
-                .unwrap()
-                .lock()
-                .unwrap()
-                .add_expect_result(Result::Err(err_msg.clone()));
-            return ();
-        }
-
         let condition: bool = if let ExpectedValue::Nothing(_) = &self.value {
             false
         } else {
@@ -229,16 +206,6 @@ impl Expector {
 
     /// Checks if a provided string matches a provided regular expression
     pub fn to_match(&mut self, pattern: &str) {
-        if let ExpectedValue::Error(err_msg) = &self.value {
-            self.test_container
-                .as_mut()
-                .unwrap()
-                .lock()
-                .unwrap()
-                .add_expect_result(Result::Err(err_msg.clone()));
-            return ();
-        }
-
         let regex = Regex::new(pattern).unwrap();
 
         let condition = match &self.value {
@@ -302,16 +269,6 @@ impl Expector {
 
     /// Checks if a provided function pointer, when executed, throws a specified status code
     pub fn to_throw_status(&mut self, status_code_to_match: i64) {
-        if let ExpectedValue::Error(err_msg) = &self.value {
-            self.test_container
-                .as_mut()
-                .unwrap()
-                .lock()
-                .unwrap()
-                .add_expect_result(Result::Err(err_msg.clone()));
-            return ();
-        }
-
         let binding = self.run_throw_function();
         let (result, _, status_code) = match &binding {
             Ok(r) => r,
@@ -371,16 +328,6 @@ impl Expector {
 
     /// Checks if a provided function pointer, when executed, throws a specified message
     pub fn to_throw_message(&mut self, message_to_match: &str) {
-        if let ExpectedValue::Error(err_msg) = &self.value {
-            self.test_container
-                .as_mut()
-                .unwrap()
-                .lock()
-                .unwrap()
-                .add_expect_result(Result::Err(err_msg.clone()));
-            return ();
-        }
-
         let binding = self.run_throw_function();
         let (result, message, _) = match &binding {
             Ok(r) => r,
@@ -455,16 +402,6 @@ impl Expector {
 
     /// Checks if a provided function pointer, when executed, throws an error
     pub fn to_throw(&mut self) {
-        if let ExpectedValue::Error(err_msg) = &self.value {
-            self.test_container
-                .as_mut()
-                .unwrap()
-                .lock()
-                .unwrap()
-                .add_expect_result(Result::Err(err_msg.clone()));
-            return ();
-        }
-
         let binding = self.run_throw_function();
         let (result, ..) = match &binding {
             Ok(r) => r,
