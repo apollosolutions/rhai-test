@@ -1,3 +1,9 @@
+## 0.2.6 (2026-04-09)
+
+### 🚀 Features
+
+- bump rhai dependency to 1.23.6 to support Apollo Router v2.12.0
+
 ## 0.2.5 (2024-12-06)
 
 ### 🚀 Features
