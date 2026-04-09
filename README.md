@@ -11,8 +11,8 @@ This project is experimental and is not a fully-supported Apollo Graph project. 
 
 | rhai-test version | Rhai version | Apollo Router version |
 |---|---|---|
-| 0.2.6 | 1.23.6 | v2.12.0 |
-| 0.2.5 | 1.17.1 | — |
+| 0.3.0 | 1.23.6 | v2.12.0 |
+| 0.2.5 | 1.17.1 | < v2.12.0 |
 
 When a new Router release ships with an updated Rhai version, `rhai-test` should be updated to match. See the [Apollo Router release notes](https://github.com/apollographql/router/releases) for details on which Rhai version each Router release includes.
 
@@ -637,4 +637,3 @@ test("Should be able to modify subgraph requestsvia supergraph request", ||{
     expect(subgraph_request.subgraph.headers["original_assetid"]).to_be("abc123");
 });
 ```
-
