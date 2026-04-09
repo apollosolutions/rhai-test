@@ -1,3 +1,16 @@
+## 0.3.0 (2026-04-09)
+
+### ❗️Breaking ❗
+
+#### rhai engine updated from 1.17.1 to 1.23.6. Scripts using
+
+deprecated or removed rhai APIs may need to be updated.
+
+### 🚀 Features
+
+- bump rhai dependency to 1.23.6 to support Apollo Router v2.12.0
+- update rhai to 1.23.6 for Apollo Router v2.12.0 compatibility
+
 ## 0.2.5 (2024-12-06)
 
 ### 🚀 Features
