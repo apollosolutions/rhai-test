@@ -250,4 +250,4 @@ jobs:
 
           git add .
           git commit -m "Update installer version to v$VERSION"
-          git push origin main
+          git push origin HEAD:refs/heads/main
