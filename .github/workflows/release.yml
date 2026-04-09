@@ -74,13 +74,17 @@ jobs:
         with:
           ref: ${{ needs.prepare-release.outputs.sha }}
 
-      # Windows has a 260-character MAX_PATH limit. The apollo-router git dependency
-      # contains snapshot files with very long names that exceed this limit when placed
-      # under the default CARGO_HOME (C:\Users\runneradmin\.cargo\...). Moving CARGO_HOME
-      # to a shorter root path keeps the total path length under 260 characters.
-      - name: Set short CARGO_HOME on Windows to avoid MAX_PATH limit
+      # The apollo-router git dependency contains snapshot files with extremely long
+      # filenames that exceed Windows' default 260-character MAX_PATH limit. We fix
+      # this by: (1) enabling long paths in the Windows registry, (2) telling git to
+      # support long paths, and (3) forcing Cargo to use the git CLI (which respects
+      # core.longpaths) instead of its built-in libgit2 (which does not).
+      - name: Enable long paths on Windows
         if: matrix.os == 'windows-latest'
-        run: echo "CARGO_HOME=C:\c" >> $GITHUB_ENV
+        run: |
+          powershell -Command "Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name 'LongPathsEnabled' -Value 1"
+          git config --system core.longpaths true
+          echo "CARGO_NET_GIT_FETCH_WITH_CLI=true" >> $GITHUB_ENV
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
