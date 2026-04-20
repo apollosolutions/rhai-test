@@ -379,6 +379,27 @@ test("Should not throw an error when clients header are provided", ||{
 });
 ```
 
+#### Writable `subgraph_request_id` on subgraph response mocks
+
+The mock subgraph response exposes `subgraph_request_id` as a read/write property. This lets tests exercise the correlation pattern where a script stashes state on `request.context` keyed by the subgraph request id and pulls it back on the response side.
+
+```rhai
+let response = apollo_mocks::get_subgraph_service_response();
+response.subgraph_request_id = "custom-id-xyz";
+```
+
+#### `context.remove(key)` on request and response contexts
+
+Both `request.context` and `response.context` support `remove(key)`, returning the removed value (or `()` if the key was absent). Keeps parity with the existing `insert` / `upsert` / indexer-get surface.
+
+```rhai
+let response = apollo_mocks::get_subgraph_service_response();
+response.context["correlation:trace"] = #{ trace_id: "abc" };
+let removed = response.context.remove("correlation:trace");
+```
+
+See [`examples/subgraph_request_id_correlation.test.rhai`](examples/subgraph_request_id_correlation.test.rhai) for the full correlation pattern end to end.
+
 ### Logging Methods
 
 This library injects in identifiers for each of the Router logging methods. This can be used to test that a particular log method was called after calling your functions.
