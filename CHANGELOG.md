@@ -1,3 +1,14 @@
+## Unreleased
+
+### 🚀 Features
+
+- Subgraph response mocks now expose a writable `subgraph_request_id`, enabling tests that exercise the request/response id correlation pattern. ([AS-389](https://apollographql.atlassian.net/browse/AS-389), requested via [TSH-22538](https://apollographql.atlassian.net/browse/TSH-22538))
+- `request.context` and `response.context` now support `remove(key)`, returning the removed value (or unit if the key was absent). Keeps parity with the existing `insert` / `upsert` / indexer-get surface.
+
+### 🛠 Maintenance
+
+- Bumped `apollo-router` git pin to include the two additions above. Router fork branch `feature/rhaitest-v2.12.0` remains the source; pin switched from `branch = ...` to `rev = ...` for reproducibility.
+
 ## 0.3.0 (2026-04-09)
 
 ### ❗️Breaking ❗
