@@ -67,3 +67,36 @@ test("Should support the full subgraph_request_id correlation pattern", ||{
     expect(payload.span).to_be("s1");
     expect(mock_resp.context["correlation:" + rid]).to_be(());
 });
+
+// The following two tests demonstrate the idiomatic rhai-test pattern: import
+// a sibling .rhai source file (the script under test) and exercise its hooks
+// against the mocks. Use this shape as a copy-paste template for testing your
+// own correlation logic.
+
+test("Should stash correlation payload on request context via subgraph_request hook", ||{
+    let supergraph_request = apollo_mocks::get_supergraph_service_request();
+    let request = apollo_mocks::get_subgraph_service_request(supergraph_request);
+    let rid = request.subgraph_request_id;
+
+    import "subgraph_request_id_correlation" as correlation;
+    correlation::subgraph_request(request);
+
+    let stashed = request.context["correlation:" + rid];
+    expect(stashed.attempt).to_be(1);
+    expect(stashed.started_at).to_be("2026-04-29T00:00:00Z");
+});
+
+test("Should pull and remove correlation payload via subgraph_response hook", ||{
+    let response = apollo_mocks::get_subgraph_service_response();
+    response.subgraph_request_id = "test-rid-9";
+    response.context["correlation:test-rid-9"] = #{
+        started_at: "2026-04-29T00:00:00Z",
+        attempt: 1,
+    };
+
+    import "subgraph_request_id_correlation" as correlation;
+    correlation::subgraph_response(response);
+
+    expect(response.headers["x-correlation-started-at"]).to_be("2026-04-29T00:00:00Z");
+    expect(response.context["correlation:test-rid-9"]).to_be(());
+});
