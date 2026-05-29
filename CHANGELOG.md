@@ -9,6 +9,12 @@
 
 - Bumped `apollo-router` git pin to include the two additions above. Router fork branch `feature/rhaitest-v2.12.0` remains the source; pin switched from `branch = ...` to `rev = ...` for reproducibility.
 
+## 0.3.1 (2026-05-29)
+
+### 🚀 Features
+
+- writable subgraph_request_id + context.remove in mocks (AS-389) (#16)
+
 ## 0.3.0 (2026-04-09)
 
 ### ❗️Breaking ❗
