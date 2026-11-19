@@ -1,8 +1,9 @@
 // ============================================================
 // rhai-1-25-features.test.rhai
-// Proves the engine is Rhai ~1.25.x. Each test below uses
-// behavior introduced in Rhai 1.24 or 1.25, so it fails on
-// 1.23.6 and earlier.
+// The first four tests exercise behavior added in Rhai 1.24/1.25
+// (sort_desc, split on const strings, index_of string fallback,
+// and the `\${...}` escape). The last test is a regression guard
+// for Router's json::decode error handling.
 // ============================================================
 
 test("Rhai 1.24: arrays support sort_desc", ||{

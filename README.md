@@ -11,9 +11,11 @@ This project is experimental and is not a fully-supported Apollo Graph project. 
 
 | rhai-test version | Rhai version | Apollo Router version |
 |---|---|---|
-| 0.4.0 | ~1.25.1 | v2.18.0+ (built against v2.19.1) |
-| 0.3.0 – 0.3.1 | 1.23.6 | v2.12.0 – v2.17.x |
+| 0.4.0 | ~1.25.1 (locked to 1.25.1) | v2.18.0 – v2.19.x |
+| 0.3.0 – 0.3.1 | ^1.23.6 (not locked — release binaries may include a newer 1.x) | v2.12.0 – v2.17.x |
 | 0.2.5 | 1.17.1 | < v2.12.0 |
+
+If you run Router v2.12.0 – v2.17.x, install `rhai-test` v0.3.1 by setting `VERSION="v0.3.1"` in the installer command shown in [Getting Started](#getting-started). Because 0.3.x did not lock its Rhai version, scripts that rely on exact 1.23.6 behavior should also be checked against Router itself.
 
 When a new Router release ships with an updated Rhai version, `rhai-test` should be updated to match. See the [Apollo Router release notes](https://github.com/apollographql/router/releases) for details on which Rhai version each Router release includes.
 
@@ -110,6 +112,8 @@ Prerequisites:
 ```sh
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
+
+  Building requires Rust 1.99 or newer, because Apollo Router v2.19.1 requires it. If you already have rustup, run `rustup update stable`.
 
 - **Git** — to clone and checkout a branch.
 
